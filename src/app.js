@@ -3,8 +3,8 @@ const http = require("http")
 const { Server } = require("socket.io")
 const { createAdapter } = require("@socket.io/redis-adapter")
 const { createClient } = require("redis")
-const { connectRedis } = require("../configs/redis.js") // Your general Redis connection (optional)
-const { connectDB } = require("../configs/db.js")        // Sequelize init
+const { connectRedis } = require("../configs/redis.js") 
+const { connectDB } = require("../configs/db.js")
 const cookieParser = require("cookie-parser")
 
 const app = express()
@@ -18,8 +18,10 @@ const io = new Server(server, {
 })
 
 const userRoutes = require('../routes/users.route.js')
+const projectRoutes = require('../routes/projects.route.js')
 
 app.use('/api/users', userRoutes)
+app.use('/api/projects', projectRoutes)
 
 async function startServer() {
   try {
