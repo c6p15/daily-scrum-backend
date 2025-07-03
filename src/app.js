@@ -19,9 +19,11 @@ const io = new Server(server, {
 
 const userRoutes = require('../routes/users.route.js')
 const projectRoutes = require('../routes/projects.route.js')
+const dailyScrumRoutes = require('../routes/dailyScrum.route.js')
 
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
+app.use('/api/daily-scrum', dailyScrumRoutes)
 
 async function startServer() {
   try {
