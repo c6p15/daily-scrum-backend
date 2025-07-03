@@ -1,24 +1,20 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models/index.js"); // from your models/index.js
+const { User } = require("../models/index.js"); 
 const { getFromCache, saveToCache } = require("../services/redis.service.js");
 
-const JWT_EXPIRE = "1d"; // Token expiration
+const JWT_EXPIRE = "1d"; 
 
-// Register new user
 exports.register = async (req, res) => {
   try {
     const { firstname, lastname, email, password } = req.body;
 
-    // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser)
       return res.status(400).json({ error: "Email already registered" });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const newUser = await User.create({
       firstname,
       lastname,
@@ -34,34 +30,28 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login user
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
     const user = await User.findOne({ where: { email } });
     if (!user)
       return res.status(400).json({ error: "Invalid email or password" });
 
-    // Compare password
     const match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(400).json({ error: "Invalid email or password" });
 
-    // Create JWT payload (include only needed info)
     const payload = { id: user.id, email: user.email };
 
-    // Sign token
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: JWT_EXPIRE,
     });
 
-    // Set cookie (httpOnly + secure in production)
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 24 * 60 * 60 * 1000, 
       sameSite: "strict",
     });
 
@@ -71,7 +61,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Logout user (clear cookie)
 exports.logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
@@ -81,10 +70,8 @@ exports.logout = (req, res) => {
   res.json({ message: "Logged out successfully" });
 };
 
-// Show logged-in user profile
 exports.profile = async (req, res) => {
   try {
-    // req.user is set by your JWT middleware
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ["password"] },
     });
