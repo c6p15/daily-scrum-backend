@@ -163,6 +163,9 @@ exports.updateProject = async (req, res) => {
 exports.deleteProject = async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
+  
+  const project = await Project.findByPk(id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
 
   try {
     const link = await UserProject.findOne({
@@ -179,7 +182,7 @@ exports.deleteProject = async (req, res) => {
 
     await deleteFromCache(`projects:user:${userId}`);
 
-    res.status(200).json({ message: "Project and associated members deleted" });
+    res.status(200).json({ message: "Project deleted!!" });
   } catch (err) {
     res.status(500).json({ error: "Delete failed", details: err.message });
   }
