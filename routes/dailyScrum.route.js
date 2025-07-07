@@ -1,11 +1,14 @@
 const express = require('express')
+const multer = require('multer')
 const router = express.Router()
 const dailyScrumController = require('../controllers/dailyScrum.controller.js')
 const auth = require('../middleware/auth.js')
 
+const upload = multer();
+
 router.get('/', dailyScrumController.getAllDailyScrums)
 router.get('/:id', dailyScrumController.getDailyScrumById)
-router.post('/', auth, dailyScrumController.createDailyScrum)
+router.post('/', auth, upload.array('files'), dailyScrumController.createDailyScrum)
 router.put('/:id', auth, dailyScrumController.updateDailyScrum)
 router.delete('/:id', auth, dailyScrumController.deleteDailyScrum)
 

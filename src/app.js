@@ -6,6 +6,8 @@ const { createClient } = require("redis")
 const { connectRedis } = require("../configs/redis.js") 
 const { connectDB } = require("../configs/db.js")
 const cookieParser = require("cookie-parser")
+const storage = require("../services/storage.service.js");
+const path = require("path");
 
 const app = express()
 
@@ -16,6 +18,30 @@ const server = http.createServer(app)
 const io = new Server(server, {
   cors: { origin: "*" }
 })
+
+app.use("/api/files", express.static(path.join(__dirname, "../uploads")));
+
+app.get("/api/files/:filename", async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const storageDriver =
+      process.env.STORAGE_DRIVER ||
+      (process.env.NODE_ENV === "development" ? "local" : "s3");
+
+    if (storageDriver === "s3") {
+      const signedUrl = await storage.getObjectSignedUrl(filename);
+      return res.redirect(signedUrl);
+    } else {
+      const storagePath = process.env.STORAGE_PATH || "./uploads";
+      const absoluteStoragePath = path.resolve(storagePath);
+      const filePath = path.join(absoluteStoragePath, filename);
+      return res.sendFile(filePath);
+    }
+  } catch (error) {
+    console.error(`Error serving file: ${error.message}`);
+    return res.status(404).json({ message: "File not found" });
+  }
+});
 
 const userRoutes = require('../routes/users.route.js')
 const projectRoutes = require('../routes/projects.route.js')

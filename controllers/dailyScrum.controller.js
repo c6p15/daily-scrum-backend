@@ -1,5 +1,7 @@
-const { DailyScrum, UserProject } = require("../models/index.js");
+const { DailyScrum, UserProject, FilesUpload } = require("../models/index.js");
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js");
+const { handleFilesUpload } = require('../services/fileUpload.service.js')
+const { getObjectSignedUrl } = require('../services/storage.service.js')
 
 exports.getAllDailyScrums = async (req, res) => {
   const cacheKey = `dailyscrums:all`;
@@ -58,21 +60,66 @@ exports.createDailyScrum = async (req, res) => {
     });
 
     if (!userProject) {
-      return res
-        .status(403)
-        .json({ error: "You are not part of this project" });
+      return res.status(403).json({ error: "You're not a member of this project" });
     }
 
+    // Create Daily Scrum Post
     const scrum = await DailyScrum.create({
       ...rest,
       user_project_id: userProject.id,
     });
 
+    let uploadedFiles = [];
+
+    if (req.files && req.files.length > 0) {
+      const uploaded = await handleFilesUpload(req.files);
+
+      const fileEntries = [];
+
+      for (const fileName of uploaded.image) {
+        fileEntries.push({
+          daily_scrum_id: scrum.id,
+          file_url: fileName,
+          mime_type: 'image/webp',
+          file_name: fileName,
+        });
+      }
+
+      for (const fileName of uploaded.other) {
+        const ext = fileName.split('.').pop();
+        const mime = ext === 'pdf' ? 'application/pdf' : `application/octet-stream`;
+
+        fileEntries.push({
+          daily_scrum_id: scrum.id,
+          file_url: fileName,
+          mime_type: mime,
+          file_name: fileName,
+        });
+      }
+
+      // Bulk create in DB
+      const filesCreated = await FilesUpload.bulkCreate(fileEntries);
+
+      // Add signed URLs for response
+      uploadedFiles = await Promise.all(
+        filesCreated.map(async (file) => ({
+          id: file.id,
+          file_name: file.file_name,
+          mime_type: file.mime_type,
+          url: await getObjectSignedUrl(file.file_url),
+        }))
+      );
+    }
+
     // Invalidate cache
     await deleteFromCache(`dailyscrums:user:${userId}`);
     await deleteFromCache(`dailyscrums:project:${project_id}`);
 
-    res.status(201).json({ message: "Scrum created", scrum });
+    res.status(201).json({ 
+      message: "Daily Scrum created", 
+      scrum_id: scrum.id, 
+      files: uploadedFiles 
+    });
   } catch (err) {
     res.status(500).json({ error: "Create failed", details: err.message });
   }
@@ -86,7 +133,7 @@ exports.updateDailyScrum = async (req, res) => {
     const scrum = await DailyScrum.findByPk(id, {
       include: {
         model: UserProject,
-        include: ["Project"], // optional, only if you want to clear project cache
+        include: ["Project"],
       },
     });
 
@@ -118,7 +165,6 @@ exports.updateDailyScrum = async (req, res) => {
       next_sprint,
     });
 
-    // Invalidate related Redis keys
     await deleteFromCache(`dailyscrum:one:${id}`);
     await deleteFromCache(`dailyscrums:user:${userId}`);
     if (scrum.UserProject?.project_id) {
@@ -141,7 +187,7 @@ exports.deleteDailyScrum = async (req, res) => {
     const scrum = await DailyScrum.findByPk(id, {
       include: {
         model: UserProject,
-        include: ["Project"], // Optional if you want to clear project-level cache
+        include: ["Project"], 
       },
     });
 
@@ -149,10 +195,8 @@ exports.deleteDailyScrum = async (req, res) => {
       return res.status(403).json({ error: "You can't delete this post" });
     }
 
-    // Delete the daily scrum
     await scrum.destroy();
 
-    // Invalidate related Redis keys
     await deleteFromCache(`dailyscrum:one:${id}`);
     await deleteFromCache(`dailyscrums:user:${userId}`);
     if (scrum.UserProject?.project_id) {
