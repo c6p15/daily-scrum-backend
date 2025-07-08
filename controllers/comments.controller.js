@@ -16,7 +16,7 @@ exports.getAllComments = async (req, res) => {
     })
 
     await saveToCache(cacheKey, comments)
-    res.json({ comments })
+    res.status(200).json({ message: 'Fetch comments successfully!', status: 200, comments })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -33,7 +33,7 @@ exports.getCommentById = async (req, res) => {
 
     if (!comment) return res.status(404).json({ error: "Comment not found" })
 
-    res.json({ comment })
+    res.status(200).json({ message: 'Fetch comment successfully!', status: 200, comment })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -57,7 +57,7 @@ exports.createComment = async (req, res) => {
 
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
-    res.status(201).json({ message: "Comment created", comment: newComment })
+    res.status(201).json({ message: "Create comment successfully!", status: 201, comment: newComment })
   } catch (err) {
     res.status(500).json({ error: "Create failed", details: err.message })
   }
@@ -82,7 +82,7 @@ exports.updateComment = async (req, res) => {
 
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
-    res.json({ message: "Comment updated", comment: existingComment })
+    res.status(200).json({ message: "Update comment successfully!", status: 200, comment: existingComment })
   } catch (err) {
     res.status(500).json({ error: "Update failed", details: err.message })
   }
@@ -102,7 +102,7 @@ exports.deleteComment = async (req, res) => {
     await comment.destroy()
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
-    res.json({ message: "Comment deleted" })
+    res.status(200).json({ message: "Delete comment successfully!", status: 200})
   } catch (err) {
     res.status(500).json({ error: "Delete failed", details: err.message })
   }

@@ -22,7 +22,7 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     })
 
-    res.status(201).json({ message: "User registered", status: 201, userId: newUser.id })
+    res.status(201).json({ message: "Registered successfully!", status: 201, userId: newUser.id })
   } catch (error) {
     res
       .status(500)
@@ -55,7 +55,7 @@ exports.login = async (req, res) => {
       sameSite: "strict",
     })
 
-    res.status(200).json({ message: "Login successful", status : 200 })
+    res.status(200).json({ message: "Login successfully!", status : 200 })
   } catch (error) {
     res.status(500).json({ error: "Login failed", details: error.message })
   }
@@ -67,7 +67,7 @@ exports.logout = (req, res) => {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   })
-  res.json({ message: "Logged out successfully" , status: 200 })
+  res.json({ message: "Logged out successfully!" , status: 200 })
 }
 
 exports.profile = async (req, res) => {
@@ -78,7 +78,7 @@ exports.profile = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: "User not found" })
 
-    res.status(200).json({ message: `fetch user's info completed`, status: 200, user })
+    res.status(200).json({ message: `Fetch user's info successfully!`, status: 200, user })
   } catch (error) {
     res
       .status(500)

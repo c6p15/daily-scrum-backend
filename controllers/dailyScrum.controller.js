@@ -39,7 +39,7 @@ exports.getAllDailyScrums = async (req, res) => {
     )
 
     await saveToCache(cacheKey, scrumsWithUrls)
-    res.status(200).json({ scrums: scrumsWithUrls })
+    res.status(200).json({message: 'Fetch daily scrums successfully!', status: 200, scrums: scrumsWithUrls })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -83,7 +83,7 @@ exports.getDailyScrumById = async (req, res) => {
 
     await saveToCache(cacheKey, response)
 
-    res.status(200).json({ scrum: response })
+    res.status(200).json({message: 'Fetch daily scrum successfully!', status: 200, scrum: response })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -152,7 +152,8 @@ exports.createDailyScrum = async (req, res) => {
     await deleteFromCache(`dailyscrums:project:${project_id}`)
 
     res.status(201).json({ 
-      message: "Daily Scrum created", 
+      message: "Create daily scrum successfully!",
+      status: 201,
       scrum_id: scrum.id, 
       files: uploadedFiles 
     })
@@ -261,7 +262,8 @@ exports.updateDailyScrum = async (req, res) => {
     )
 
     res.status(200).json({
-      message: "Daily Scrum updated",
+      message: "Update daily scrum successfully!",
+      status: 200,
       scrum: { ...scrum.toJSON(), files },
       uploadedFiles,
     })
@@ -293,7 +295,7 @@ exports.deleteDailyScrum = async (req, res) => {
     await deleteFromCache(`dailyscrums:user:${dailyScrum.user_project_id}`)
 
     res.status(200).json({
-      message: "Daily scrum post deleted successfully!",
+      message: "Delete daily scrum successfully!",
       status: 200,
     })
   } catch (error) {
@@ -326,19 +328,16 @@ exports.deleteSingleFile = async (req, res) => {
       return res.status(404).json({ message: 'File not found in this scrum post' })
     }
 
-    // Delete from storage (S3 or local)
     await deleteFile(fileName)
 
-    // Delete from DB
     await fileToDelete.destroy()
 
-    // Clear Redis cache
     await deleteFromCache(`dailyscrum:one:${id}`)
     await deleteFromCache(`dailyscrums:all`)
     await deleteFromCache(`dailyscrums:user:${dailyScrum.UserProject?.user_id}`)
     await deleteFromCache(`dailyscrums:project:${dailyScrum.UserProject?.project_id}`)
 
-    res.status(200).json({ message: "File deleted successfully" })
+    res.status(200).json({ message: "File deleted successfully" , status: 200})
 
   } catch (error) {
     res.status(500).json({

@@ -17,7 +17,7 @@ exports.getAllProjects = async (req, res) => {
     const formattedProjects = projects.map(responseWithMembers)
     await saveToCache(cacheKey, formattedProjects)
 
-    res.status(200).json({ projects: formattedProjects })
+    res.status(200).json({ message: 'Fetch projects successfully!', status: 200, projects: formattedProjects })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -33,7 +33,7 @@ exports.getProjectById = async (req, res) => {
     
     if (!project) return res.status(404).json({ error: "Project not found" })
     
-    res.status(200).json(responseWithMembers(project))
+    res.status(200).json({message: 'Fetch project successfully!', status: 200, project: responseWithMembers(project) })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -85,7 +85,8 @@ exports.createProject = async (req, res) => {
     })
 
     res.status(201).json({
-      message: "Project created",
+      message: "Create project successfully!",
+      status: 201,
       project: responseWithMembers(fullProject),
     })
   } catch (err) {
@@ -152,7 +153,8 @@ exports.updateProject = async (req, res) => {
     })
 
     res.status(200).json({
-      message: "Project updated with synced members",
+      message: "Update project successfully!",
+      status: 200,
       project: responseWithMembers(updatedProject),
     })
   } catch (err) {
@@ -182,7 +184,7 @@ exports.deleteProject = async (req, res) => {
 
     await deleteFromCache(`projects:user:${userId}`)
 
-    res.status(200).json({ message: "Project deleted!!" })
+    res.status(200).json({ message: "Delete project successfully!" })
   } catch (err) {
     res.status(500).json({ error: "Delete failed", details: err.message })
   }
