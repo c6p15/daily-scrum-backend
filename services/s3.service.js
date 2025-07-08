@@ -32,9 +32,9 @@ function deleteFile(fileName) {
   const deleteParams = {
     Bucket: bucketName,
     Key: fileName,
-  };
+  }
 
-  return s3Client.send(new DeleteObjectCommand(deleteParams));
+  return s3Client.send(new DeleteObjectCommand(deleteParams))
 }
 
 async function getObjectSignedUrl(key) {

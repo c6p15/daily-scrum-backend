@@ -1,4 +1,4 @@
-const { UserProject, User } = require("../models");
+const { UserProject, User } = require("../models")
 
 const memberInclude = () => ({
   model: UserProject,
@@ -6,7 +6,7 @@ const memberInclude = () => ({
     model: User,
     attributes: ["id", "firstname", "lastname", "email"],
   },
-});
+})
 
 const responseWithMembers = (project) => {
   const members =
@@ -17,7 +17,7 @@ const responseWithMembers = (project) => {
       email: link.User.email,
       position: link.position,
       scrum_point: link.scrum_point,
-    })) || [];
+    })) || []
 
   return {
     id: project.id,
@@ -27,7 +27,7 @@ const responseWithMembers = (project) => {
     scrum_time: project.scrum_time,
     created_at: project.created_at,
     members,
-  };
-};
+  }
+}
 
-module.exports = { memberInclude, responseWithMembers };
+module.exports = { memberInclude, responseWithMembers }
