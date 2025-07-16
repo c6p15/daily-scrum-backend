@@ -9,10 +9,18 @@ const cookieParser = require("cookie-parser")
 const storage = require("../services/storage.service.js")
 const path = require("path")
 
+const cors = require('cors')
 const app = express()
 
 app.use(express.json())
 app.use(cookieParser())
+
+app.use(
+  cors({
+    origin: process.env.frontend_url,
+    credentials: true
+  })
+)
 
 const server = http.createServer(app)
 const io = new Server(server, {
@@ -47,7 +55,9 @@ const userRoutes = require('../routes/users.route.js')
 const projectRoutes = require('../routes/projects.route.js')
 const dailyScrumRoutes = require('../routes/dailyScrum.route.js')
 const commentRoutes = require('../routes/comments.route.js')
+const oauthRoutes = require('../routes/oauth.route.js')
 
+app.use('/auth', oauthRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/daily-scrum', dailyScrumRoutes)
