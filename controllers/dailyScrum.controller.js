@@ -89,82 +89,104 @@ exports.getDailyScrumById = async (req, res) => {
   }
 }
 
-
 exports.createDailyScrum = async (req, res) => {
-  const userId = req.user.id
-  const { project_id, ...rest } = req.body
+  const userId = req.user.id;
+  const { project_id, ...rest } = req.body;
 
   try {
+    // Check user is in project
     const userProject = await UserProject.findOne({
       where: { user_id: userId, project_id },
-    })
+    });
 
     if (!userProject) {
-      return res.status(403).json({ error: "You're not a member of this project" })
+      return res.status(403).json({ error: "You're not a member of this project" });
     }
 
+    // Create Daily Scrum
     const scrum = await DailyScrum.create({
       ...rest,
       user_project_id: userProject.id,
-    })
+    });
 
-    let uploadedFiles = []
-
+    // Handle file upload
     if (req.files && req.files.length > 0) {
-      const uploaded = await handleFilesUpload(req.files)
-
-      const fileEntries = []
+      const uploaded = await handleFilesUpload(req.files);
+      const fileEntries = [];
 
       for (const fileName of uploaded.image) {
         fileEntries.push({
           daily_scrum_id: scrum.id,
           file_url: fileName,
-          mime_type: 'image/webp',
+          mime_type: "image/webp",
           file_name: fileName,
-        })
+        });
       }
 
       for (const fileName of uploaded.other) {
-        const ext = fileName.split('.').pop()
-        const mime = ext === 'pdf' ? 'application/pdf' : `application/octet-stream`
+        const ext = fileName.split(".").pop();
+        const mime = ext === "pdf" ? "application/pdf" : `application/octet-stream`;
 
         fileEntries.push({
           daily_scrum_id: scrum.id,
           file_url: fileName,
           mime_type: mime,
           file_name: fileName,
-        })
+        });
       }
 
-      const filesCreated = await FilesUpload.bulkCreate(fileEntries)
-
-      uploadedFiles = await Promise.all(
-        filesCreated.map(async (file) => ({
-          id: file.id,
-          file_name: file.file_name,
-          mime_type: file.mime_type,
-          url: await getObjectSignedUrl(file.file_url),
-        }))
-      )
+      await FilesUpload.bulkCreate(fileEntries);
     }
 
-    await deleteFromCache(`dailyscrums:user:${userId}`)
-    await deleteFromCache(`dailyscrums:project:${project_id}`)
+    // Fetch full scrum data including file URLs
+    const fullScrum = await DailyScrum.findByPk(scrum.id, {
+      include: [FilesUpload],
+    });
 
-    res.status(201).json({ 
+    const filesWithUrls = await Promise.all(
+      (fullScrum.FileUploads || []).map(async (file) => ({
+        id: file.id,
+        file_name: file.file_name,
+        mime_type: file.mime_type,
+        url: await getObjectSignedUrl(file.file_url),
+      }))
+    );
+
+    const scrumData = fullScrum.toJSON();
+    delete scrumData.FileUploads;
+
+    // Clear cache
+    await deleteFromCache(`dailyscrums:user:${userId}`);
+    await deleteFromCache(`dailyscrums:project:${project_id}`);
+
+    // ✅ Send response only once
+    return res.status(201).json({
       message: "Create daily scrum successfully!",
       status: 201,
-      scrum_id: scrum.id, 
-      files: uploadedFiles 
-    })
+      info: {
+        ...scrumData,
+        files: filesWithUrls,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ error: "Create failed", details: err.message })
+    return res.status(500).json({ error: "Create failed", details: err.message });
   }
-}
+};
 
 exports.updateDailyScrum = async (req, res) => {
-  const { id } = req.params
-  const userId = req.user.id
+  const { id } = req.params;
+  const userId = req.user.id;
+  const {
+    type,
+    today_task,
+    problem,
+    problem_level,
+    tomorrow_task,
+    good,
+    bad,
+    try: tryText,
+    next_sprint,
+  } = req.body;
 
   try {
     const scrum = await DailyScrum.findByPk(id, {
@@ -177,24 +199,13 @@ exports.updateDailyScrum = async (req, res) => {
           model: FilesUpload,
         },
       ],
-    })
+    });
 
     if (!scrum || scrum.UserProject.user_id !== userId) {
-      return res.status(403).json({ error: "You can't edit this post" })
+      return res.status(403).json({ error: "You can't edit this post" });
     }
 
-    const {
-      type,
-      today_task,
-      problem,
-      problem_level,
-      tomorrow_task,
-      good,
-      bad,
-      try: tryText,
-      next_sprint,
-    } = req.body
-
+    // Update scrum fields
     await scrum.update({
       type,
       today_task,
@@ -205,72 +216,73 @@ exports.updateDailyScrum = async (req, res) => {
       bad,
       try: tryText,
       next_sprint,
-    })
+    });
 
-    let uploadedFiles = []
-
+    // Handle new file uploads (append to existing)
     if (req.files && req.files.length > 0) {
-      const uploaded = await handleFilesUpload(req.files)
-
-      const fileEntries = []
+      const uploaded = await handleFilesUpload(req.files);
+      const fileEntries = [];
 
       for (const fileName of uploaded.image) {
         fileEntries.push({
           daily_scrum_id: scrum.id,
           file_url: fileName,
-          mime_type: 'image/webp',
+          mime_type: "image/webp",
           file_name: fileName,
-        })
+        });
       }
 
       for (const fileName of uploaded.other) {
-        const ext = fileName.split('.').pop()
-        const mime = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream'
+        const ext = fileName.split(".").pop();
+        const mime = ext === "pdf" ? "application/pdf" : `application/octet-stream`;
 
         fileEntries.push({
           daily_scrum_id: scrum.id,
           file_url: fileName,
           mime_type: mime,
           file_name: fileName,
-        })
+        });
       }
 
-      const filesCreated = await FilesUpload.bulkCreate(fileEntries)
-
-      uploadedFiles = await Promise.all(
-        filesCreated.map(async (file) => ({
-          id: file.id,
-          file_name: file.file_name,
-          mime_type: file.mime_type,
-          url: await getObjectSignedUrl(file.file_url),
-        }))
-      )
+      await FilesUpload.bulkCreate(fileEntries);
     }
 
-    await deleteFromCache(`dailyscrum:one:${id}`)
-    await deleteFromCache(`dailyscrums:user:${userId}`)
-    if (scrum.UserProject?.project_id) {
-      await deleteFromCache(`dailyscrums:project:${scrum.UserProject.project_id}`)
-    }
-    await deleteFromCache(`dailyscrums:all`)
+    // Refetch updated scrum with all files (old + new)
+    const updatedScrum = await DailyScrum.findByPk(id, {
+      include: [FilesUpload],
+    });
 
-    const files = await Promise.all(
-      (scrum.FilesUploads || []).map(async (file) => ({
-        ...file.toJSON(),
+    const filesWithUrls = await Promise.all(
+      (updatedScrum.FileUploads || []).map(async (file) => ({
+        id: file.id,
+        file_name: file.file_name,
+        mime_type: file.mime_type,
         url: await getObjectSignedUrl(file.file_url),
       }))
-    )
+    );
 
-    res.status(200).json({
-      message: "Update daily scrum successfully!",
+    const scrumData = updatedScrum.toJSON();
+    delete scrumData.FileUploads;
+
+    // Invalidate cache
+    await deleteFromCache(`dailyscrum:one:${id}`);
+    await deleteFromCache(`dailyscrums:user:${userId}`);
+    if (scrum.UserProject?.project_id) {
+      await deleteFromCache(`dailyscrums:project:${scrum.UserProject.project_id}`);
+    }
+
+    return res.status(200).json({
+      message: "Update daily Scrum successfully!",
       status: 200,
-      scrum: { ...scrum.toJSON(), files },
-      uploadedFiles,
-    })
+      scrum: {
+        ...scrumData,
+        files: filesWithUrls,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ error: "Update failed", details: err.message })
+    return res.status(500).json({ error: "Update failed", details: err.message });
   }
-}
+};
 
 exports.deleteDailyScrum = async (req, res) => {
   try {
