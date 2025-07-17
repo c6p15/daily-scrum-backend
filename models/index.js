@@ -6,7 +6,7 @@ const UserProject = require("./userProject.model.js");
 const DailyScrum = require("./dailyScrum.model.js");
 const Comment = require("./comments.model.js");
 const FilesUpload = require("./filesUpload.model.js");
-const Notification = require("./notification.model.js");
+const Notification = require("./notifications.model.js");
 
 
 UserProject.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });

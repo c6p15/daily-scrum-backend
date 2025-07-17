@@ -54,7 +54,7 @@ exports.createProject = async (req, res) => {
     await UserProject.create({
       user_id: userId,
       project_id: newProject.id,
-      position: "Leader",
+      position: "Project Manager",
       scrum_point: 0,
     })
 
@@ -184,7 +184,7 @@ exports.deleteProject = async (req, res) => {
 
     await deleteFromCache(`projects:user:${userId}`)
 
-    res.status(200).json({ message: "Delete project successfully!" })
+    res.status(200).json({ message: "Delete project successfully!", status: 200 })
   } catch (err) {
     res.status(500).json({ error: "Delete failed", details: err.message })
   }
