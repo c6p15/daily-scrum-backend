@@ -8,6 +8,7 @@ const { connectDB } = require("../configs/db.js")
 const cookieParser = require("cookie-parser")
 const storage = require("../services/storage.service.js")
 const path = require("path")
+const { notificationJobs } = require('../jobs/notifications.job.js')
 
 const cors = require('cors')
 const app = express()
@@ -56,12 +57,14 @@ const projectRoutes = require('../routes/projects.route.js')
 const dailyScrumRoutes = require('../routes/dailyScrum.route.js')
 const commentRoutes = require('../routes/comments.route.js')
 const oauthRoutes = require('../routes/oauth.route.js')
+const notificationRoutes = require('../routes/notification.route.js')
 
 app.use('/auth', oauthRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/daily-scrum', dailyScrumRoutes)
 app.use('/api/comments', commentRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 async function startServer() {
   try {
@@ -80,13 +83,15 @@ async function startServer() {
       console.log("User connected:", socket.id)
 
       socket.on("chat", (msg) => {
-        io.emit("chat", msg) 
+        io.emit("chat", msg)
       })
 
       socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id)
       })
     })
+
+    notificationJobs(io)
 
     server.listen(3000, () => {
       console.log("Server is running on port 3000")
