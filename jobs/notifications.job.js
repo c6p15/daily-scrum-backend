@@ -64,20 +64,25 @@ function notificationJobs(io) {
   });
 
   cron.schedule("0 0 * * *", async () => {
-    console.log("Running Cleanup Job");
-    const thresholdDate = new Date();
-    thresholdDate.setDate(thresholdDate.getDate() - 30);
-
-    const deleted = await Notification.destroy({
-      where: {
-        created_at: {
-          [Op.lt]: thresholdDate,
+    try {
+      console.log("Running Cleanup Job");
+  
+      const thresholdDate = new Date();
+      thresholdDate.setDate(thresholdDate.getDate() - 30);
+  
+      const deleted = await Notification.destroy({
+        where: {
+          created_at: {
+            [Op.lt]: thresholdDate,
+          },
         },
-      },
-    });
-
-    console.log(`Deleted ${deleted} old notifications`);
-  });
+      });
+  
+      console.log(`Deleted ${deleted} old notifications`);
+    } catch (err) {
+      console.error("Cleanup Job Error:", err.message);
+    }
+  });  
 }
 
 module.exports = { notificationJobs };
