@@ -12,9 +12,14 @@ const { notificationJobs } = require('../jobs/notifications.job.js')
 
 const cors = require('cors')
 const app = express()
+const server = http.createServer(app)
 
-app.use(express.json())
-app.use(cookieParser())
+const io = new Server(server, {
+  cors: {
+    origin: process.env.frontend_url,
+    credentials: true,
+  },
+})
 
 app.use(
   cors({
@@ -23,10 +28,8 @@ app.use(
   })
 )
 
-const server = http.createServer(app)
-const io = new Server(server, {
-  cors: { origin: "*" }
-})
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 app.use("/api/files", express.static(path.join(__dirname, "../uploads")))
 
@@ -78,12 +81,16 @@ async function startServer() {
     await subClient.connect()
 
     io.adapter(createAdapter(pubClient, subClient))
+    global._io = io
 
     io.on("connection", (socket) => {
       console.log("User connected:", socket.id)
 
-      socket.on("chat", (msg) => {
-        io.emit("chat", msg)
+      socket.on("join", (userId) => {
+        if (userId) {
+          socket.join(userId.toString())
+          console.log(`Socket ${socket.id} joined room for user ${userId}`)
+        }
       })
 
       socket.on("disconnect", () => {
@@ -94,11 +101,11 @@ async function startServer() {
     notificationJobs(io)
 
     server.listen(3000, () => {
-      console.log("Server is running on port 3000")
+      console.log("🚀 Server is running on port 3000")
     })
 
   } catch (err) {
-    console.error("Startup error:", err)
+    console.error("❌ Startup error:", err)
   }
 }
 
