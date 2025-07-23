@@ -31,7 +31,7 @@ exports.getNotificationById = async (req, res) => {
     if (!notification) return res.status(404).json({ error: 'Notification not found' })
 
     if (notification.user_id !== userId) {
-      return res.status(403).json({ error: "Doesn't have access to this notification." });
+      return res.status(403).json({ error: "Doesn't have access to this notification." })
     }
 
     res.status(200).json({ message: "Fetch notification successfully!", status: 200, notification })
@@ -52,9 +52,26 @@ exports.createNotification = async (req, res) => {
     })
 
     await deleteFromCache(`notifications:user:${user_id}`)
-    res.status(201).json({ message: 'Create notification successfully!', status: 201, notification })
+
+    if (global._io) {
+      global._io.to(user_id.toString()).emit("notification", {
+        type,
+        message,
+      })
+      
+      global._io.to(user_id.toString()).emit("notification:update")      
+    }
+
+    res.status(201).json({
+      message: 'Create notification successfully!',
+      status: 201,
+      notification
+    })
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create notification', details: err.message })
+    res.status(500).json({
+      error: 'Failed to create notification',
+      details: err.message
+    })
   }
 }
 
@@ -75,6 +92,9 @@ exports.markAsRead = async (req, res) => {
     await notification.save()
 
     await deleteFromCache(`notifications:user:${userId}`)
+    
+    global._io.to(userId.toString()).emit("notification:update")
+    
     res.status(200).json({ message: 'Notification marked as read', status: 200, notification })
   } catch (err) {
     res.status(500).json({ error: 'Failed to update notification', details: err.message })

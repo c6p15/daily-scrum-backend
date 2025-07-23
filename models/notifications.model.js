@@ -12,7 +12,7 @@ const Notification = sequelize.define("Notification", {
     allowNull: false,
   },
   type: {
-    type: DataTypes.ENUM("reminder", "late_notice", "new_comment"),
+    type: DataTypes.ENUM("reminder", "missed", "new_comment"),
     allowNull: false,
   },
   daily_scrum_id: {
