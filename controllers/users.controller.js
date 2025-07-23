@@ -3,8 +3,6 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models/index.js") 
 const { getFromCache, saveToCache } = require("../services/redis.service.js")
 
-const JWT_EXPIRE = "1d" 
-
 exports.register = async (req, res) => {
   try {
     const { firstname, lastname, email, password } = req.body
@@ -45,29 +43,28 @@ exports.login = async (req, res) => {
     const payload = { id: user.id, email: user.email }
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: JWT_EXPIRE,
+      expiresIn: process.env.JWT_EXPIRE || "1d",
     })
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, 
-      sameSite: "strict",
+    res.status(200).json({
+      message: "Login successfully!",
+      status: 200,
+      token
     })
-
-    res.status(200).json({ message: "Login successfully!", status : 200 })
   } catch (error) {
     res.status(500).json({ error: "Login failed", details: error.message })
   }
 }
 
 exports.logout = (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+  const expiredToken = jwt.sign({}, process.env.JWT_SECRET, {
+    expiresIn: 0, 
   })
-  res.json({ message: "Logged out successfully!" , status: 200 })
+
+  return res.status(200).json({
+    message: "Logged out successfully!",
+    expiredToken,
+  })
 }
 
 exports.profile = async (req, res) => {
@@ -87,16 +84,10 @@ exports.profile = async (req, res) => {
 }
 
 exports.getAllUsers = async (req, res) => {
-  const cacheKey = "users:all"
-
   try {
-    const cached = await getFromCache(cacheKey)
-    if (cached) return res.json({ fromCache: true, users: cached })
-
     const users = await User.findAll({ attributes: { exclude: ["password"] } })
-    await saveToCache(cacheKey, users)
 
-    res.status(200).json({ fromCache: false, users })
+    res.status(200).json({ users })
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" })
   }
