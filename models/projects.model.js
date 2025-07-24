@@ -12,6 +12,10 @@ const Project = sequelize.define("Project", {
     allowNull: false,
   },
   description: DataTypes.TEXT,
+  status: {
+    type: DataTypes.ENUM("done", "in_progress"),
+    defaultValue: "in_progress"
+  },
   deadline_date: DataTypes.DATEONLY,
   scrum_time: DataTypes.TIME,
   created_at: {
