@@ -23,6 +23,7 @@ const responseWithMembers = (project) => {
     id: project.id,
     title: project.title,
     description: project.description,
+    status: project.status,
     deadline_date: project.deadline_date,
     scrum_time: project.scrum_time,
     created_at: project.created_at,

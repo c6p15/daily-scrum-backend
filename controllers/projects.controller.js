@@ -41,7 +41,7 @@ exports.getProjectById = async (req, res) => {
 
 exports.createProject = async (req, res) => {
   try {
-    const { title, description, deadline_date, scrum_time, members = [] } = req.body
+    const { title, description, status, deadline_date, scrum_time, members = [] } = req.body
     const userId = req.user.id
 
     const newProject = await Project.create({
@@ -49,6 +49,7 @@ exports.createProject = async (req, res) => {
       description,
       deadline_date,
       scrum_time,
+      status
     })
 
     await UserProject.create({
@@ -104,8 +105,8 @@ exports.updateProject = async (req, res) => {
       where: { project_id: id, user_id: userId },
     })
 
-    if (!link || link.position !== "Leader") {
-      return res.status(403).json({ error: "Only the project leader can update the project" })
+    if (!link || link.position !== "Project Manager") {
+      return res.status(403).json({ error: "Only the Project Manager can update the project" })
     }
 
     const project = await Project.findByPk(id)
