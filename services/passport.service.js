@@ -23,12 +23,12 @@ passport.use(
             firstname: fullName.split(" ")[0],
             lastname: fullName.split(" ").slice(1).join(" "),
             email,
-            password: "", // or null
+            password: "", 
             profile_pic: profilePic,
           });
         }
 
-        return done(null, user); // Send user object to the callback route
+        return done(null, user); 
       } catch (error) {
         return done(error, null);
       }
