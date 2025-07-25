@@ -3,6 +3,9 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models/index.js")
 const { handleFilesUpload } = require("../services/fileUpload.service.js")
 const { getObjectSignedUrl, deleteFile } = require('../services/storage.service.js')
+const { redisClient } = require('../configs/redis.js')
+const { sendMail } = require('../services/mailer.service.js')
+const generateOtp = require('../utils/generateOtp.util.js')
 
 exports.register = async (req, res) => {
   try {
@@ -75,23 +78,23 @@ exports.login = async (req, res) => {
 
 exports.editProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    const userId = req.user.id
+    if (!userId) return res.status(401).json({ error: "Unauthorized" })
 
-    const user = await User.findByPk(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const user = await User.findByPk(userId)
+    if (!user) return res.status(404).json({ error: "User not found" })
 
-    const { firstname, lastname, email, password } = req.body;
+    const { firstname, lastname, email, password } = req.body
 
     if (email && email !== user.email) {
-      const existing = await User.findOne({ where: { email } });
-      if (existing) return res.status(400).json({ error: "Email already in use" });
+      const existing = await User.findOne({ where: { email } })
+      if (existing) return res.status(400).json({ error: "Email already in use" })
     }
 
-    let profilePicFilename = user.profile_pic;
+    let profilePicFilename = user.profile_pic
 
     if (req.file) {
-      const uploaded = await handleFilesUpload([req.file]);
+      const uploaded = await handleFilesUpload([req.file])
 
       if (uploaded.image.length > 0) {
         if (
@@ -99,10 +102,10 @@ exports.editProfile = async (req, res) => {
           !user.profile_pic.startsWith("https://") &&
           !user.profile_pic.startsWith("http://")
         ) {
-          await deleteFile(user.profile_pic);
+          await deleteFile(user.profile_pic)
         }
 
-        profilePicFilename = uploaded.image[0]; 
+        profilePicFilename = uploaded.image[0] 
       }
     }
 
@@ -111,20 +114,20 @@ exports.editProfile = async (req, res) => {
       lastname: lastname ?? user.lastname,
       email: email ?? user.email,
       profile_pic: profilePicFilename, 
-    };
-
-    if (password) {
-      updatedData.password = await bcrypt.hash(password, 10);
     }
 
-    await user.update(updatedData);
+    if (password) {
+      updatedData.password = await bcrypt.hash(password, 10)
+    }
+
+    await user.update(updatedData)
 
     const profile_pic_url =
       profilePicFilename &&
       !profilePicFilename.startsWith("https://") &&
       !profilePicFilename.startsWith("http://")
         ? await getObjectSignedUrl(profilePicFilename)
-        : profilePicFilename;
+        : profilePicFilename
 
     res.status(200).json({
       message: "Profile updated successfully!",
@@ -135,40 +138,40 @@ exports.editProfile = async (req, res) => {
         email: user.email,
         profile_pic: profile_pic_url, 
       },
-    });
+    })
   } catch (err) {
-    console.error("Edit profile error:", err);
-    res.status(500).json({ error: "Update failed", details: err.message });
+    console.error("Edit profile error:", err)
+    res.status(500).json({ error: "Update failed", details: err.message })
   }
-};
+}
 
 exports.profile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ["password"] },
-    });
+    })
 
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "User not found" })
 
-    const userData = user.toJSON();
+    const userData = user.toJSON()
 
     if (
       userData.profile_pic &&
       !userData.profile_pic.startsWith("https://") &&
       !userData.profile_pic.startsWith("http://")
     ) {
-      userData.profile_pic = await getObjectSignedUrl(userData.profile_pic);
+      userData.profile_pic = await getObjectSignedUrl(userData.profile_pic)
     }
 
     res.status(200).json({
       message: "Fetch user's info successfully!",
       status: 200,
       user: userData,
-    });
+    })
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch profile", details: error.message });
+    res.status(500).json({ error: "Failed to fetch profile", details: error.message })
   }
-};
+}
 
 exports.logout = (req, res) => {
   const expiredToken = jwt.sign({}, process.env.JWT_SECRET, {
@@ -188,5 +191,58 @@ exports.getAllUsers = async (req, res) => {
     res.status(200).json({ users })
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" })
+  }
+}
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body
+    const user = await User.findOne({ where: { email } })
+    if (!user) return res.status(404).json({ error: "User not found" })
+
+    const otp = generateOtp()
+    const key = `otp:${email}`
+
+    await redisClient.setEx(key, 600, otp)
+
+    await sendMail({
+      to: email,
+      subject: "Reset Your Password - OTP Code",
+      html: `<p>Your OTP code is: <b>${otp}</b></p><p>It expires in 10 minutes.</p>`,
+    })
+
+    res.status(200).json({ message: "OTP sent to your email." })
+  } catch (err) {
+    console.error("Forgot password (OTP) error:", err)
+    res.status(500).json({ error: "Failed to send OTP" })
+  }
+}
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body
+    const user = await User.findOne({ where: { email } })
+    if (!user) return res.status(404).json({ error: "User not found" })
+
+    const key = `otp:${email}`
+    const storedOtp = await redisClient.get(key)
+
+    if (!storedOtp) {
+      return res.status(400).json({ error: "OTP expired or not found" })
+    }
+
+    if (storedOtp !== otp) {
+      return res.status(400).json({ error: "Invalid OTP" })
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10)
+    await user.update({ password: hashed })
+
+    await redisClient.del(key)
+
+    res.status(200).json({ message: "Password reset successful!" })
+  } catch (err) {
+    console.error("Reset password (OTP) error:", err)
+    res.status(500).json({ error: "Failed to reset password" })
   }
 }
