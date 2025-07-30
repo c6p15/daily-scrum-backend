@@ -4,30 +4,47 @@ const { Op } = require("sequelize")
 const { deleteFromCache } = require("../services/redis.service.js")
 
 function projectJob() {
-    cron.schedule("* * * * *", async () => {
-      try {
-        const today = new Date().toISOString().slice(0, 10)
-  
-        const [updatedCount] = await Project.update(
-          { status: "done" },
-          {
-            where: {
-              deadline_date: { [Op.lte]: today },
-              status: { [Op.ne]: "done" },
-            },
-          }
-        )
-  
-        if (updatedCount > 0) {
-          console.log(`✅ Updated ${updatedCount} projects status to done`)
-          await deleteFromCache("projects:all")
-        } else {
-          console.log("⏱ No projects needed updating")
+  (async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+
+      const [updatedCount] = await Project.update(
+        { status: "done" },
+        {
+          where: {
+            deadline_date: { [Op.lte]: today },
+            status: { [Op.ne]: "done" },
+          },
         }
-      } catch (error) {
-        console.error("❌ Error updating projects status:", error)
+      )
+
+      if (updatedCount > 0) {
+        await deleteFromCache("projects:all")
       }
-    })
-  }
+    } catch (error) {
+    }
+  })()
+
+  cron.schedule("0 0 * * *", async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+
+      const [updatedCount] = await Project.update(
+        { status: "done" },
+        {
+          where: {
+            deadline_date: { [Op.lte]: today },
+            status: { [Op.ne]: "done" },
+          },
+        }
+      )
+
+      if (updatedCount > 0) {
+        await deleteFromCache("projects:all")
+      }
+    } catch (error) {
+    }
+  })
+}
 
 module.exports = { projectJob }
