@@ -4,7 +4,7 @@ const { deleteFromCache } = require("../services/redis.service.js")
 const { Op } = require("sequelize")
 
 function notificationJobs(io) {
-  cron.schedule("0 18 * * *", async () => {
+    cron.schedule("0 18 * * *", async () => {
     try {
       const userProjects = await UserProject.findAll({
         include: [User, Project],
@@ -51,14 +51,14 @@ function notificationJobs(io) {
         if (!hasPosted) {
           await Notification.create({
             user_id: member.user_id,
-            type: "missed",
+            type: "late_notice",
             message: `คุณยังไม่ได้โพสต์ Daily Scrum ของ ${member.Project.title} วันนี้นะ!`,
           })
 
           await deleteFromCache(`notifications:user:${member.user_id}`)
 
           io.to(member.user_id.toString()).emit("notification", {
-            type: "missed",
+            type: "late_notice",
             message: `คุณยังไม่ได้โพสต์ Daily Scrum ของ ${member.Project.title} วันนี้นะ!`,
           })
 

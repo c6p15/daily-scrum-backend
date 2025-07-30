@@ -1,13 +1,13 @@
-const { Notification, User } = require('../models/index.js')
+const { Notification } = require('../models/index.js')
 const { getFromCache, saveToCache, deleteFromCache } = require('../services/redis.service.js')
 
-exports.getNotifications = async (req, res) => {
+exports.getAllNotifications = async (req, res) => {
   const userId = req.user.id
   const cacheKey = `notifications:user:${userId}`
 
   try {
     const cached = await getFromCache(cacheKey)
-    if (cached) return res.status(200).json({ notifications: JSON.parse(cached) })
+    if (cached) return res.status(200).json({ message: "Fetch notifications succesfully!", status: 200, notifications: JSON.parse(cached) })
 
     const notifications = await Notification.findAll({
       where: { user_id: userId },
@@ -37,41 +37,6 @@ exports.getNotificationById = async (req, res) => {
     res.status(200).json({ message: "Fetch notification successfully!", status: 200, notification })
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch notification', details: err.message })
-  }
-}
-
-exports.createNotification = async (req, res) => {
-  const { user_id, message, type, related_id } = req.body
-
-  try {
-    const notification = await Notification.create({
-      user_id,
-      message,
-      type,
-      related_id,
-    })
-
-    await deleteFromCache(`notifications:user:${user_id}`)
-
-    if (global._io) {
-      global._io.to(user_id.toString()).emit("notification", {
-        type,
-        message,
-      })
-      
-      global._io.to(user_id.toString()).emit("notification:update")      
-    }
-
-    res.status(201).json({
-      message: 'Create notification successfully!',
-      status: 201,
-      notification
-    })
-  } catch (err) {
-    res.status(500).json({
-      error: 'Failed to create notification',
-      details: err.message
-    })
   }
 }
 

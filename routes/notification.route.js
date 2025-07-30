@@ -5,9 +5,8 @@ const auth = require("../middleware/auth.js")
 
 router.use(auth)
 
-router.get('/', notificationController.getNotifications)
+router.get('/', notificationController.getAllNotifications)
 router.get('/:id', notificationController.getNotificationById)
-router.post('/', notificationController.createNotification)
 router.patch('/:id', notificationController.markAsRead)
 router.delete('/:id', notificationController.deleteNotification)
 
