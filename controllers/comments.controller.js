@@ -1,4 +1,4 @@
-const { Comment, DailyScrum, User } = require("../models/index.js")
+const { Comment, DailyScrum, Notification, User, UserProject } = require("../models/index.js")
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 
 exports.getAllComments = async (req, res) => {
@@ -46,8 +46,9 @@ exports.createComment = async (req, res) => {
 
   try {
     const dailyScrum = await DailyScrum.findByPk(daily_scrum_id)
-    if (!dailyScrum)
+    if (!dailyScrum) {
       return res.status(404).json({ error: "Daily scrum not found" })
+    }
 
     const newComment = await Comment.create({
       daily_scrum_id,
@@ -57,7 +58,38 @@ exports.createComment = async (req, res) => {
 
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
-    res.status(201).json({ message: "Create comment successfully!", status: 201, comment: newComment })
+    const userProject = await UserProject.findByPk(dailyScrum.user_project_id, {
+      include: ['Project']
+    })
+
+    if (userProject) {
+      const projectTitle = userProject.Project?.title || 'your project'
+    
+      const notification = await Notification.create({
+        user_id: userProject.user_id,
+        message: `${req.user.firstname} แสดงความคิดเห็นใน scrum ของ ${projectTitle}`,
+        type: "new_comment",
+        daily_scrum_id,
+        comment_id: newComment.id,
+      })
+    
+      await deleteFromCache(`notifications:user:${userProject.user_id}`)
+    
+      if (global._io) {
+        global._io.to(userProject.user_id.toString()).emit("notification", notification.toJSON())
+        global._io.to(userProject.user_id.toString()).emit("notification:update")
+      }
+    }
+
+    const createdComment = await Comment.findByPk(newComment.id, {
+      include: { model: User, attributes: ["id", "firstname", "lastname"] },
+    })
+
+    res.status(201).json({
+      message: "Create comment successfully!",
+      status: 201,
+      comment: createdComment,
+    })
   } catch (err) {
     res.status(500).json({ error: "Create failed", details: err.message })
   }
