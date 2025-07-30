@@ -11,9 +11,11 @@ router.post("/login", userController.login)
 router.patch("/edit-profile", auth, upload.single('profile_pic'), userController.editProfile)
 router.post("/logout", auth, userController.logout)
 router.get("/profile", auth, userController.profile)
-router.get('/all', userController.getAllUsers)
+router.get('/all', auth, userController.getAllUsers)
 
 router.post("/forgot-password", userController.forgotPassword)
-router.post("/reset-password/:token", userController.resetPassword)
+router.post("/resend-otp", userController.resendOtp)
+router.post("/verify-otp", userController.verifyOtp)
+router.post("/reset-password", userController.resetPassword)
 
 module.exports = router
