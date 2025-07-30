@@ -7,14 +7,15 @@ exports.getAllProjects = async (req, res) => {
 
   try {
     const cached = await getFromCache(cacheKey)
-    if (cached) return res.json({ fromCache: true, projects: cached })
+    if (cached) return res.json({ message: 'Fetch projects successfully!', status: 200, projects: cached })
 
     const projects = await Project.findAll({
       order: [["created_at", "DESC"]],
       include: memberInclude(),
     })
 
-    const formattedProjects = projects.map(responseWithMembers)
+    const formattedProjects = await Promise.all(projects.map(responseWithMembers))
+
     await saveToCache(cacheKey, formattedProjects)
 
     res.status(200).json({ message: 'Fetch projects successfully!', status: 200, projects: formattedProjects })
@@ -30,10 +31,12 @@ exports.getProjectById = async (req, res) => {
     const project = await Project.findByPk(id, {
       include: memberInclude(),
     })
-    
+
     if (!project) return res.status(404).json({ error: "Project not found" })
-    
-    res.status(200).json({message: 'Fetch project successfully!', status: 200, project: responseWithMembers(project) })
+
+    const formattedProject = await responseWithMembers(project)
+
+    res.status(200).json({ message: 'Fetch project successfully!', status: 200, project: formattedProject })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
@@ -49,7 +52,7 @@ exports.createProject = async (req, res) => {
       description,
       deadline_date,
       scrum_time,
-      status
+      status,
     })
 
     await UserProject.create({
@@ -60,7 +63,7 @@ exports.createProject = async (req, res) => {
     })
 
     for (const member of members) {
-      if (member.user_id === userId) continue 
+      if (member.user_id === userId) continue
 
       const user = await User.findByPk(member.user_id)
       if (user) {
@@ -85,10 +88,12 @@ exports.createProject = async (req, res) => {
       include: memberInclude(),
     })
 
+    const formattedProject = await responseWithMembers(fullProject)
+
     res.status(201).json({
       message: "Create project successfully!",
       status: 201,
-      project: responseWithMembers(fullProject),
+      project: formattedProject,
     })
   } catch (err) {
     res.status(500).json({ error: "Create failed", details: err.message })
@@ -129,7 +134,7 @@ exports.updateProject = async (req, res) => {
     }
 
     for (const member of members) {
-      if (member.user_id === userId) continue 
+      if (member.user_id === userId) continue
 
       const existing = await UserProject.findOne({
         where: { user_id: member.user_id, project_id: id },
@@ -153,10 +158,12 @@ exports.updateProject = async (req, res) => {
       include: memberInclude(),
     })
 
+    const formattedProject = await responseWithMembers(updatedProject)
+
     res.status(200).json({
       message: "Update project successfully!",
       status: 200,
-      project: responseWithMembers(updatedProject),
+      project: formattedProject,
     })
   } catch (err) {
     res.status(500).json({ error: "Update failed", details: err.message })
@@ -175,8 +182,8 @@ exports.deleteProject = async (req, res) => {
       where: { project_id: id, user_id: userId },
     })
 
-    if (!link || link.position !== "Leader") {
-      return res.status(403).json({ error: "Only the leader can delete the project" })
+    if (!link || link.position !== "Project Manager") {
+      return res.status(403).json({ error: "Only the Project Manager can update the project" })
     }
 
     await UserProject.destroy({ where: { project_id: id } })
@@ -188,5 +195,35 @@ exports.deleteProject = async (req, res) => {
     res.status(200).json({ message: "Delete project successfully!", status: 200 })
   } catch (err) {
     res.status(500).json({ error: "Delete failed", details: err.message })
+  }
+}
+
+exports.setProjectDone = async (req, res) => {
+  const { id } = req.params
+  const userId = req.user.id
+
+  try {
+    const project = await Project.findByPk(id)
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" })
+    }
+
+    const link = await UserProject.findOne({
+      where: { project_id: id, user_id: userId },
+    })
+
+    if (!link || link.position !== "Project Manager") {
+      return res.status(403).json({ error: "Only the Project Manager can update the project" })
+    }
+
+    project.status = "done"
+    await project.save()
+
+    await deleteFromCache(`projects:user:${userId}`)
+
+    return res.status(200).json({ message: "Project status updated to done", project })
+  } catch (error) {
+    console.error("Error updating project status:", error)
+    return res.status(500).json({ error: "Internal server error", details: error.message })
   }
 }
