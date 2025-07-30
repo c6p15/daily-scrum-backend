@@ -8,6 +8,7 @@ const { connectDB } = require("../configs/db.js")
 const storage = require("../services/storage.service.js")
 const path = require("path")
 const { notificationJobs } = require('../jobs/notifications.job.js')
+const { projectJob } = require('../jobs/projects.job.js')
 
 const cors = require('cors')
 const app = express()
@@ -97,6 +98,7 @@ async function startServer() {
       })
     })
 
+    projectJob()
     notificationJobs(io)
 
     server.listen(3000, () => {
