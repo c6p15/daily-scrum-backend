@@ -4,17 +4,20 @@ const { handleFilesUpload } = require('../services/fileUpload.service.js')
 const { getObjectSignedUrl, deleteFile } = require('../services/storage.service.js')
 
 exports.getAllDailyScrums = async (req, res) => {
-  const cacheKey = `dailyscrums:all`
+  const { id: projectId } = req.params
+  const cacheKey = `dailyscrums:project:${projectId}`
 
   try {
     const cached = await getFromCache(cacheKey)
-    if (cached) return res.status(200).json({ scrums: cached })
+    if (cached) return res.status(200).json({ message: "Fetch daily scrums successfully!", status: 200, scrums: cached })
 
     const scrums = await DailyScrum.findAll({
       include: [
         {
           model: UserProject,
-          include: ["Project", "User"],
+          required: true,
+          where: { project_id: projectId },
+          include: ["User", "Project"],
         },
         {
           model: FilesUpload,
@@ -39,8 +42,14 @@ exports.getAllDailyScrums = async (req, res) => {
     )
 
     await saveToCache(cacheKey, scrumsWithUrls)
-    res.status(200).json({message: 'Fetch daily scrums successfully!', status: 200, scrums: scrumsWithUrls })
+
+    res.status(200).json({
+      message: "Fetch daily scrums successfully!",
+      status: 200,
+      scrums: scrumsWithUrls,
+    })
   } catch (err) {
+    console.error("Get daily scrums error:", err)
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
 }
@@ -94,7 +103,6 @@ exports.createDailyScrum = async (req, res) => {
   const { project_id, ...rest } = req.body;
 
   try {
-    // Check user is in project
     const userProject = await UserProject.findOne({
       where: { user_id: userId, project_id },
     });
@@ -103,13 +111,11 @@ exports.createDailyScrum = async (req, res) => {
       return res.status(403).json({ error: "You're not a member of this project" });
     }
 
-    // Create Daily Scrum
     const scrum = await DailyScrum.create({
       ...rest,
       user_project_id: userProject.id,
     });
 
-    // Handle file upload
     if (req.files && req.files.length > 0) {
       const uploaded = await handleFilesUpload(req.files);
       const fileEntries = [];
@@ -138,7 +144,6 @@ exports.createDailyScrum = async (req, res) => {
       await FilesUpload.bulkCreate(fileEntries);
     }
 
-    // Fetch full scrum data including file URLs
     const fullScrum = await DailyScrum.findByPk(scrum.id, {
       include: [FilesUpload],
     });
@@ -155,11 +160,9 @@ exports.createDailyScrum = async (req, res) => {
     const scrumData = fullScrum.toJSON();
     delete scrumData.FileUploads;
 
-    // Clear cache
     await deleteFromCache(`dailyscrums:user:${userId}`);
     await deleteFromCache(`dailyscrums:project:${project_id}`);
 
-    // ✅ Send response only once
     return res.status(201).json({
       message: "Create daily scrum successfully!",
       status: 201,
@@ -205,7 +208,6 @@ exports.updateDailyScrum = async (req, res) => {
       return res.status(403).json({ error: "You can't edit this post" });
     }
 
-    // Update scrum fields
     await scrum.update({
       type,
       today_task,
@@ -218,7 +220,6 @@ exports.updateDailyScrum = async (req, res) => {
       next_sprint,
     });
 
-    // Handle new file uploads (append to existing)
     if (req.files && req.files.length > 0) {
       const uploaded = await handleFilesUpload(req.files);
       const fileEntries = [];
@@ -247,7 +248,6 @@ exports.updateDailyScrum = async (req, res) => {
       await FilesUpload.bulkCreate(fileEntries);
     }
 
-    // Refetch updated scrum with all files (old + new)
     const updatedScrum = await DailyScrum.findByPk(id, {
       include: [FilesUpload],
     });
@@ -264,7 +264,6 @@ exports.updateDailyScrum = async (req, res) => {
     const scrumData = updatedScrum.toJSON();
     delete scrumData.FileUploads;
 
-    // Invalidate cache
     await deleteFromCache(`dailyscrum:one:${id}`);
     await deleteFromCache(`dailyscrums:user:${userId}`);
     if (scrum.UserProject?.project_id) {

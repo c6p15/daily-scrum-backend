@@ -6,7 +6,7 @@ const auth = require('../middleware/auth.js')
 
 const upload = multer();
 
-router.get('/', dailyScrumController.getAllDailyScrums)
+router.get('/project/:id', dailyScrumController.getAllDailyScrums)
 router.get('/:id', dailyScrumController.getDailyScrumById)
 router.post('/', auth, upload.array('files'), dailyScrumController.createDailyScrum)
 router.put('/:id', auth, upload.array('files'), dailyScrumController.updateDailyScrum)
