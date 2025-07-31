@@ -1,3 +1,4 @@
+const moment = require('moment')
 const { DailyScrum, UserProject, FilesUpload } = require("../models/index.js")
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 const { handleFilesUpload } = require('../services/fileUpload.service.js')
@@ -116,6 +117,24 @@ exports.createDailyScrum = async (req, res) => {
       user_project_id: userProject.id,
     });
 
+    const project = await Project.findByPk(project_id);
+    const createdAt = moment(scrum.created_at);
+    const scrumTime = moment(project.scrum_time, "HH:mm:ss").set({
+      year: createdAt.year(),
+      month: createdAt.month(),
+      date: createdAt.date(),
+    });
+
+    let points = 0;
+    if (createdAt.isSameOrBefore(scrumTime)) {
+      points = 1;
+    } else if (createdAt.isAfter(scrumTime) && createdAt.isBefore(scrumTime.clone().add(1, "hour"))) {
+      points = 0.5;
+    }
+
+    userProject.scrum_point += points;
+    await userProject.save();
+
     if (req.files && req.files.length > 0) {
       const uploaded = await handleFilesUpload(req.files);
       const fileEntries = [];
@@ -169,6 +188,7 @@ exports.createDailyScrum = async (req, res) => {
       info: {
         ...scrumData,
         files: filesWithUrls,
+        scrum_point_added: points, 
       },
     });
   } catch (err) {
