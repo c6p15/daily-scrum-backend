@@ -9,5 +9,6 @@ router.post('/', auth, projectController.createProject)
 router.put('/:id', auth, projectController.updateProject)
 router.delete('/:id', auth, projectController.deleteProject)
 router.patch('/:id', auth, projectController.setProjectDone)
+router.patch('/:project_id/pin', auth, projectController.togglePinProject)
 
 module.exports = router

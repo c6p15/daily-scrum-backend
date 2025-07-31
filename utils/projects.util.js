@@ -26,6 +26,7 @@ const responseWithMembers = async (project) => {
           profile_pic: profilePicUrl,
           position: link.position,
           scrum_point: link.scrum_point,
+          is_pinned: link.is_pinned
         };
       })
     )) || [];
@@ -37,6 +38,7 @@ const responseWithMembers = async (project) => {
     status: project.status,
     deadline_date: project.deadline_date,
     scrum_time: project.scrum_time,
+    is_pinned: project.is_pinned,
     created_at: project.created_at,
     members,
   };

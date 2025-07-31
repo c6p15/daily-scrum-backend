@@ -82,7 +82,7 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    await deleteFromCache(`projects:user:${userId}`)
+    await deleteFromCache("projects:all")
 
     const fullProject = await Project.findByPk(newProject.id, {
       include: memberInclude(),
@@ -152,7 +152,7 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    await deleteFromCache(`projects:user:${userId}`)
+    await deleteFromCache("projects:all")
 
     const updatedProject = await Project.findByPk(id, {
       include: memberInclude(),
@@ -190,7 +190,7 @@ exports.deleteProject = async (req, res) => {
 
     await Project.destroy({ where: { id } })
 
-    await deleteFromCache(`projects:user:${userId}`)
+    await deleteFromCache(`projects:all`)
 
     res.status(200).json({ message: "Delete project successfully!", status: 200 })
   } catch (err) {
@@ -219,11 +219,37 @@ exports.setProjectDone = async (req, res) => {
     project.status = "done"
     await project.save()
 
-    await deleteFromCache(`projects:user:${userId}`)
+    await deleteFromCache(`projects:all`)
 
     return res.status(200).json({ message: "Project status updated to done", project })
   } catch (error) {
     console.error("Error updating project status:", error)
     return res.status(500).json({ error: "Internal server error", details: error.message })
+  }
+}
+
+exports.togglePinProject = async (req, res) => {
+  const userId = req.user.id
+  const { project_id } = req.params
+
+  try {
+    const userProject = await UserProject.findOne({
+      where: { user_id: userId, project_id },
+    })
+
+    if (!userProject) {
+      return res.status(404).json({ error: "Project not found or you're not a member" })
+    }
+
+    userProject.is_pinned = !userProject.is_pinned
+    await userProject.save()
+
+    return res.json({
+      message: userProject.is_pinned ? "Project pinned!" : "Project unpinned!",
+      status: 200,
+      is_pinned: userProject.is_pinned,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: "Toggle failed", details: err.message })
   }
 }

@@ -20,6 +20,10 @@ const UserProject = sequelize.define("UserProject", {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  is_pinned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  }
 }, {
   tableName: "user_project",
   timestamps: false,
