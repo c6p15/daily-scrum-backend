@@ -30,7 +30,7 @@ router.get(
     )
 
     const frontendURL = res.locals.redirectState || process.env.frontend_url
-    res.redirect(`${frontendURL}/login-success?token=${token}`)
+    res.redirect(`${frontendURL}/homepage?token=${token}`)
   }
 )
 

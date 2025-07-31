@@ -27,6 +27,7 @@ CREATE TABLE user_project (
   project_id INT,
   position VARCHAR(100),
   scrum_point INT DEFAULT 0,
+  is_pinned BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

@@ -33,18 +33,19 @@ VALUES
 (5, 'Project Omega', 'Omega is a refactor of legacy systems.', 'in_progress', '2025-09-10', '15:30:00');
 
 -- 3. User-Project
-INSERT INTO user_project (id, user_id, project_id, position, scrum_point)
+INSERT INTO user_project (id, user_id, project_id, position, scrum_point, in_pinned, is_pinned)
 VALUES 
-(1, 1, 1, 'Frontend Developer', 10),
-(2, 2, 1, 'Backend Developer', 8),
-(3, 3, 2, 'Project Manager', 15),
-(4, 1, 2, 'QA Engineer', 5),
-(5, 4, 3, 'Data Engineer', 12),
-(6, 5, 3, 'UI Designer', 7),
-(7, 6, 4, 'Fullstack Developer', 10),
-(8, 2, 4, 'Tester', 5),
-(9, 1, 5, 'System Architect', 13),
-(10, 5, 5, 'DevOps Engineer', 6);
+(1, 1, 1, 'Frontend Developer', 10, FALSE),
+(2, 2, 1, 'Backend Developer', 8, FALSE),
+(3, 3, 2, 'Project Manager', 15, FALSE),
+(4, 1, 2, 'QA Engineer', 5, FALSE),
+(5, 4, 3, 'Data Engineer', 12, FALSE),
+(6, 5, 3, 'UI Designer', 7, FALSE),
+(7, 6, 4, 'Fullstack Developer', 10, FALSE),
+(8, 2, 4, 'Tester', 5, FALSE),
+(9, 1, 5, 'System Architect', 13, FALSE),
+(10, 5, 5, 'DevOps Engineer', 6, FALSE);
+
 
 -- 4. Daily Scrum
 INSERT INTO daily_scrum (id, type, today_task, problem, problem_level, tomorrow_task, good, bad, try, next_sprint, user_project_id)

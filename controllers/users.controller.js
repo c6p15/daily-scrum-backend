@@ -3,10 +3,14 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models/index.js")
 const { Op } = require("sequelize")
 const { handleFilesUpload } = require("../services/fileUpload.service.js")
-const { getObjectSignedUrl, deleteFile } = require('../services/storage.service.js')
-const { redisClient } = require('../configs/redis.js')
-const { sendMail } = require('../services/mailer.service.js')
-const generateOtp = require('../utils/generateOtp.util.js')
+const {
+  getObjectSignedUrl,
+  deleteFile,
+} = require("../services/storage.service.js")
+const { redisClient } = require("../configs/redis.js")
+const { sendMail } = require("../services/mailer.service.js")
+const generateOtp = require("../utils/generateOtp.util.js")
+const { deleteFromCache } = require("../services/redis.service.js")
 
 exports.register = async (req, res) => {
   try {
@@ -21,7 +25,7 @@ exports.register = async (req, res) => {
     let profilePicFilename = null
 
     if (req.file) {
-      const uploaded = await handleFilesUpload([req.file])  
+      const uploaded = await handleFilesUpload([req.file])
       if (uploaded.image.length > 0) {
         profilePicFilename = uploaded.image[0]
       }
@@ -61,7 +65,11 @@ exports.login = async (req, res) => {
     if (!match)
       return res.status(400).json({ error: "Invalid email or password" })
 
-    const payload = { id: user.id, email: user.email, firstname: user.firstname }
+    const payload = {
+      id: user.id,
+      email: user.email,
+      firstname: user.firstname,
+    }
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE || "1d",
@@ -70,7 +78,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Login successfully!",
       status: 200,
-      token
+      token,
     })
   } catch (error) {
     res.status(500).json({ error: "Login failed", details: error.message })
@@ -89,7 +97,8 @@ exports.editProfile = async (req, res) => {
 
     if (email && email !== user.email) {
       const existing = await User.findOne({ where: { email } })
-      if (existing) return res.status(400).json({ error: "Email already in use" })
+      if (existing)
+        return res.status(400).json({ error: "Email already in use" })
     }
 
     let profilePicFilename = user.profile_pic
@@ -106,7 +115,7 @@ exports.editProfile = async (req, res) => {
           await deleteFile(user.profile_pic)
         }
 
-        profilePicFilename = uploaded.image[0] 
+        profilePicFilename = uploaded.image[0]
       }
     }
 
@@ -114,7 +123,7 @@ exports.editProfile = async (req, res) => {
       firstname: firstname ?? user.firstname,
       lastname: lastname ?? user.lastname,
       email: email ?? user.email,
-      profile_pic: profilePicFilename, 
+      profile_pic: profilePicFilename,
     }
 
     if (password) {
@@ -122,6 +131,9 @@ exports.editProfile = async (req, res) => {
     }
 
     await user.update(updatedData)
+    await user.reload()
+
+    await deleteFromCache("projects:all")
 
     const profile_pic_url =
       profilePicFilename &&
@@ -137,7 +149,7 @@ exports.editProfile = async (req, res) => {
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
-        profile_pic: profile_pic_url, 
+        profile_pic: profile_pic_url,
       },
     })
   } catch (err) {
@@ -170,13 +182,15 @@ exports.profile = async (req, res) => {
       user: userData,
     })
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch profile", details: error.message })
+    res
+      .status(500)
+      .json({ error: "Failed to fetch profile", details: error.message })
   }
 }
 
 exports.logout = (req, res) => {
   const expiredToken = jwt.sign({}, process.env.JWT_SECRET, {
-    expiresIn: 0, 
+    expiresIn: 0,
   })
 
   return res.status(200).json({
@@ -187,41 +201,41 @@ exports.logout = (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const loggedInUserId = req.user.id;
+    const loggedInUserId = req.user.id
 
     const users = await User.findAll({
       where: {
-        id: { [Op.ne]: loggedInUserId }, 
+        id: { [Op.ne]: loggedInUserId },
       },
       attributes: { exclude: ["email", "password", "created_at"] },
-    });
+    })
 
     const updatedUsers = await Promise.all(
       users.map(async (user) => {
-        const userData = user.toJSON();
+        const userData = user.toJSON()
 
         if (
           userData.profile_pic &&
           !userData.profile_pic.startsWith("https://") &&
           !userData.profile_pic.startsWith("http://")
         ) {
-          userData.profile_pic = await getObjectSignedUrl(userData.profile_pic);
+          userData.profile_pic = await getObjectSignedUrl(userData.profile_pic)
         }
 
-        return userData;
+        return userData
       })
-    );
+    )
 
     res.status(200).json({
       message: "Fetch users successfully!",
       status: 200,
       users: updatedUsers,
-    });
+    })
   } catch (err) {
-    console.error("getAllUsers error:", err);
-    res.status(500).json({ error: "Failed to fetch users" });
+    console.error("getAllUsers error:", err)
+    res.status(500).json({ error: "Failed to fetch users" })
   }
-};
+}
 
 exports.forgotPassword = async (req, res) => {
   try {
@@ -238,11 +252,13 @@ exports.forgotPassword = async (req, res) => {
       to: email,
       subject: "Reset Your Password - OTP Code",
       html: `<p>Your OTP code is: <b>${otp}</b></p><p>It expires in 10 minutes.</p>`,
-    }).then(() => {
-      console.log(`✅ OTP email sent to ${email}`)
-    }).catch((err) => {
-      console.error(`❌ OTP email failed to send to ${email}:`, err)
     })
+      .then(() => {
+        console.log(`✅ OTP email sent to ${email}`)
+      })
+      .catch((err) => {
+        console.error(`❌ OTP email failed to send to ${email}:`, err)
+      })
 
     res.status(200).json({ message: "OTP sent to your email.", status: 200 })
   } catch (err) {
@@ -267,11 +283,13 @@ exports.resendOtp = async (req, res) => {
       to: email,
       subject: "Resend OTP Code - Reset Your Password",
       html: `<p>Your new OTP code is: <b>${otp}</b></p><p>It expires in 10 minutes.</p>`,
-    }).then(() => {
-      console.log(`✅ OTP re-sent to ${email}`)
-    }).catch((err) => {
-      console.error(`❌ Failed to resend OTP to ${email}:`, err)
     })
+      .then(() => {
+        console.log(`✅ OTP re-sent to ${email}`)
+      })
+      .catch((err) => {
+        console.error(`❌ Failed to resend OTP to ${email}:`, err)
+      })
 
     res.status(200).json({ message: "OTP resent to your email.", status: 200 })
   } catch (err) {
@@ -336,7 +354,9 @@ exports.resetPassword = async (req, res) => {
     const hashed = await bcrypt.hash(newPassword, 10)
     await user.update({ password: hashed })
 
-    res.status(200).json({ message: "Password has been reset successfully", status: 200 })
+    res
+      .status(200)
+      .json({ message: "Password has been reset successfully", status: 200 })
   } catch (err) {
     console.error("Reset password error:", err)
     res.status(500).json({ error: "Failed to reset password" })
