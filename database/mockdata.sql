@@ -46,7 +46,6 @@ VALUES
 (9, 1, 5, 'System Architect', 13, FALSE),
 (10, 5, 5, 'DevOps Engineer', 6, FALSE);
 
-
 -- 4. Daily Scrum
 INSERT INTO daily_scrum (id, type, today_task, problem, problem_level, tomorrow_task, good, bad, try, next_sprint, user_project_id)
 VALUES 
