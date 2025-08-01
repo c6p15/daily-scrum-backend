@@ -221,7 +221,7 @@ exports.setProjectDone = async (req, res) => {
 
     await deleteFromCache(`projects:all`)
 
-    return res.status(200).json({ message: "Project status updated to done", project })
+    return res.status(200).json({ message: "Project status updated to done", status: 200, project })
   } catch (error) {
     console.error("Error updating project status:", error)
     return res.status(500).json({ error: "Internal server error", details: error.message })
@@ -247,7 +247,6 @@ exports.togglePinProject = async (req, res) => {
     return res.json({
       message: userProject.is_pinned ? "Project pinned!" : "Project unpinned!",
       status: 200,
-      is_pinned: userProject.is_pinned,
     })
   } catch (err) {
     return res.status(500).json({ error: "Toggle failed", details: err.message })

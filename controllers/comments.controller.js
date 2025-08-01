@@ -67,7 +67,7 @@ exports.createComment = async (req, res) => {
     
       const notification = await Notification.create({
         user_id: userProject.user_id,
-        message: `${req.user.firstname} แสดงความคิดเห็นใน scrum ของ ${projectTitle}`,
+        message: `${req.user.firstname} ${req.user.lastname} แสดงความคิดเห็นใน scrum ของคุณที่ ${projectTitle}`,
         type: "new_comment",
         daily_scrum_id,
         comment_id: newComment.id,
