@@ -121,4 +121,4 @@ function notificationJobs(io) {
   })
 }
 
-module.exports = { notificationJobs }
+module.exports = { notificationJobs, checkNotifications }

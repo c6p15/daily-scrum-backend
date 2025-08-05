@@ -1,4 +1,4 @@
-const { UserProject, User } = require("../models")
+const { UserProject, User } = require("../models/index.js")
 const { getObjectSignedUrl } = require('../services/storage.service.js')
 
 const memberInclude = () => ({
@@ -13,10 +13,10 @@ const responseWithMembers = async (project) => {
   const members =
     (await Promise.all(
       (project.UserProjects || []).map(async (link) => {
-        const user = link.User;
-        let profilePicUrl = null;
+        const user = link.User
+        let profilePicUrl = null
         if (user.profile_pic) {
-          profilePicUrl = await getObjectSignedUrl(user.profile_pic);
+          profilePicUrl = await getObjectSignedUrl(user.profile_pic)
         }
         return {
           id: user.id,
@@ -27,9 +27,9 @@ const responseWithMembers = async (project) => {
           position: link.position,
           scrum_point: link.scrum_point,
           is_pinned: link.is_pinned
-        };
+        }
       })
-    )) || [];
+    )) || []
 
   return {
     id: project.id,
@@ -41,8 +41,7 @@ const responseWithMembers = async (project) => {
     is_pinned: project.is_pinned,
     created_at: project.created_at,
     members,
-  };
-};
-
+  }
+}
 
 module.exports = { memberInclude, responseWithMembers }
