@@ -7,7 +7,7 @@ const { connectRedis } = require("../configs/redis.js")
 const { connectDB } = require("../configs/db.js")
 const storage = require("../services/storage.service.js")
 const path = require("path")
-const { notificationJobs } = require('../jobs/notifications.job.js')
+const { notificationJobs, checkNotifications } = require('../jobs/notifications.job.js')
 const { projectJob } = require('../jobs/projects.job.js')
 
 const cors = require('cors')
@@ -68,6 +68,15 @@ app.use('/api/projects', projectRoutes)
 app.use('/api/daily-scrum', dailyScrumRoutes)
 app.use('/api/comments', commentRoutes)
 app.use('/api/notifications', notificationRoutes)
+
+app.get("/test/notifications", async (req, res) => {
+  try {
+    await checkNotifications(io)
+    res.send("Notification check triggered")
+  } catch (err) {
+    res.status(500).send("Error running checkNotifications")
+  }
+})
 
 async function startServer() {
   try {
