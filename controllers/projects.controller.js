@@ -44,8 +44,20 @@ exports.getProjectById = async (req, res) => {
 
 exports.createProject = async (req, res) => {
   try {
-    const { title, description, status, deadline_date, scrum_time, members = [] } = req.body
-    const userId = req.user.id
+    const { title, description, status, deadline_date, scrum_time, members = [] } = req.body;
+    const userId = req.user.id;
+
+    const creator = await User.findByPk(userId);
+    if (!creator) return res.status(404).json({ error: "Creator not found in users table" });
+
+    for (const member of members) {
+      const exists = await User.findByPk(member.user_id);
+      if (!exists) {
+        return res.status(400).json({
+          error: `User with ID ${member.user_id} not found in users table`
+        });
+      }
+    }
 
     const newProject = await Project.create({
       title,
@@ -53,52 +65,51 @@ exports.createProject = async (req, res) => {
       deadline_date,
       scrum_time,
       status,
-    })
+    });
 
     await UserProject.create({
       user_id: userId,
       project_id: newProject.id,
       position: "Project Manager",
       scrum_point: 0,
-    })
+    });
 
     for (const member of members) {
-      if (member.user_id === userId) continue
+      if (member.user_id === userId) continue; 
 
-      const user = await User.findByPk(member.user_id)
-      if (user) {
-        const exists = await UserProject.findOne({
-          where: { user_id: member.user_id, project_id: newProject.id },
-        })
+      const alreadyExists = await UserProject.findOne({
+        where: { user_id: member.user_id, project_id: newProject.id },
+      });
 
-        if (!exists) {
-          await UserProject.create({
-            user_id: member.user_id,
-            project_id: newProject.id,
-            position: member.position || "Member",
-            scrum_point: 0,
-          })
-        }
+      if (!alreadyExists) {
+        await UserProject.create({
+          user_id: member.user_id,
+          project_id: newProject.id,
+          position: member.position || "Member",
+          scrum_point: 0,
+        });
       }
     }
 
-    await deleteFromCache("projects:all")
+    await deleteFromCache("projects:all");
 
     const fullProject = await Project.findByPk(newProject.id, {
       include: memberInclude(),
-    })
+    });
 
-    const formattedProject = await responseWithMembers(fullProject)
+    const formattedProject = await responseWithMembers(fullProject);
 
     res.status(201).json({
       message: "Create project successfully!",
       status: 201,
       project: formattedProject,
-    })
+    });
+
   } catch (err) {
-    res.status(500).json({ error: "Create failed", details: err.message })
+    console.error("Project creation failed:", err);
+    res.status(500).json({ error: "Create failed", details: err.message });
   }
-}
+};
 
 exports.updateProject = async (req, res) => {
   const { id } = req.params
@@ -109,8 +120,7 @@ exports.updateProject = async (req, res) => {
     const link = await UserProject.findOne({
       where: { project_id: id, user_id: userId },
     })
-
-    if (!link || link.position !== "Project Manager") {
+    if (!link || link.position.toLowerCase() !== "project manager") {
       return res.status(403).json({ error: "Only the Project Manager can update the project" })
     }
 
