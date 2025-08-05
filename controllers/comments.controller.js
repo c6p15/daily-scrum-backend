@@ -50,6 +50,14 @@ exports.createComment = async (req, res) => {
       return res.status(404).json({ error: "Daily scrum not found" })
     }
 
+    const user = await User.findByPk(userId, {
+      attributes: ["firstname", "lastname"]
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    } 
+
     const newComment = await Comment.create({
       daily_scrum_id,
       user_id: userId,
@@ -67,7 +75,7 @@ exports.createComment = async (req, res) => {
     
       const notification = await Notification.create({
         user_id: userProject.user_id,
-        message: `${req.user.firstname} ${req.user.lastname} แสดงความคิดเห็นใน scrum ของคุณที่ ${projectTitle}`,
+        message: `${user.firstname} ${user.lastname} แสดงความคิดเห็นใน scrum ของคุณที่ ${projectTitle}`,
         type: "new_comment",
         daily_scrum_id,
         comment_id: newComment.id,
