@@ -33,7 +33,7 @@ VALUES
 (5, 'Project Omega', 'Omega is a refactor of legacy systems.', 'in_progress', '2025-09-10', '15:30:00');
 
 -- 3. User-Project
-INSERT INTO user_project (id, user_id, project_id, position, scrum_point, in_pinned, is_pinned)
+INSERT INTO user_project (id, user_id, project_id, position, scrum_point, is_pinned)
 VALUES 
 (1, 1, 1, 'Frontend Developer', 10, FALSE),
 (2, 2, 1, 'Backend Developer', 8, FALSE),
