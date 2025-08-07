@@ -2,7 +2,7 @@ const moment = require('moment')
 const { DailyScrum, UserProject, FilesUpload, Project } = require("../models/index.js")
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 const { handleFilesUpload } = require('../services/fileUpload.service.js')
-const { getObjectSignedUrl, deleteFile } = require('../services/storage.service.js')
+const { deleteFile } = require('../services/storage.service.js')
 const { formatDailyScrum } = require('../utils/dailyScrum.util.js')
 
 exports.getAllDailyScrums = async (req, res) => {
@@ -82,7 +82,7 @@ exports.getDailyScrumById = async (req, res) => {
 
 exports.createDailyScrum = async (req, res) => {
   const userId = req.user.id
-  const { project_id, ...rest } = req.body
+  const { project_id, created_at, ...rest } = req.body
 
   try {
     const userProject = await UserProject.findOne({
@@ -93,13 +93,32 @@ exports.createDailyScrum = async (req, res) => {
       return res.status(403).json({ error: "You're not a member of this project" })
     }
 
+    let customCreatedAt = new Date()
+    if (created_at) {
+      const allowedDates = [
+        moment().startOf("day").format("YYYY-MM-DD"),
+        moment().subtract(1, "day").startOf("day").format("YYYY-MM-DD"),
+      ]
+      const inputDate = moment(created_at).startOf("day").format("YYYY-MM-DD")
+
+      if (!allowedDates.includes(inputDate)) {
+        return res.status(400).json({
+          error: "Invalid created_at date. Only today or yesterday are allowed.",
+        })
+      }
+
+      customCreatedAt = new Date(created_at)
+    }
+
+    // Create scrum
     const scrum = await DailyScrum.create({
       ...rest,
       user_project_id: userProject.id,
+      created_at: customCreatedAt,
     })
 
     const project = await Project.findByPk(project_id)
-    const createdAt = moment(scrum.created_at)
+    const createdAt = moment(customCreatedAt)
     const scrumTime = moment(project.scrum_time, "HH:mm:ss").set({
       year: createdAt.year(),
       month: createdAt.month(),
@@ -109,7 +128,10 @@ exports.createDailyScrum = async (req, res) => {
     let points = 0
     if (createdAt.isSameOrBefore(scrumTime)) {
       points = 1
-    } else if (createdAt.isAfter(scrumTime) && createdAt.isBefore(scrumTime.clone().add(1, "hour"))) {
+    } else if (
+      createdAt.isAfter(scrumTime) &&
+      createdAt.isBefore(scrumTime.clone().add(1, "hour"))
+    ) {
       points = 0.5
     }
 
@@ -131,7 +153,7 @@ exports.createDailyScrum = async (req, res) => {
 
       for (const fileName of uploaded.other) {
         const ext = fileName.split(".").pop()
-        const mime = ext === "pdf" ? "application/pdf" : `application/octet-stream`
+        const mime = ext === "pdf" ? "application/pdf" : "application/octet-stream"
 
         fileEntries.push({
           daily_scrum_id: scrum.id,
