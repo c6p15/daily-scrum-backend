@@ -254,6 +254,8 @@ exports.togglePinProject = async (req, res) => {
     userProject.is_pinned = !userProject.is_pinned
     await userProject.save()
 
+    await deleteFromCache(`projects:all`)
+
     return res.json({
       message: userProject.is_pinned ? "Project pinned!" : "Project unpinned!",
       status: 200,
