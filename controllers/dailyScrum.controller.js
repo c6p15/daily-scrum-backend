@@ -110,7 +110,6 @@ exports.createDailyScrum = async (req, res) => {
       customCreatedAt = new Date(created_at)
     }
 
-    // Create scrum
     const scrum = await DailyScrum.create({
       ...rest,
       user_project_id: userProject.id,
