@@ -41,12 +41,13 @@ async function getObjectSignedUrl(key) {
   const params = {
     Bucket: bucketName,
     Key: key,
-  }
+  };
 
-  const command = new GetObjectCommand(params)
-  const url = await getSignedUrl(s3Client, command)
+  const command = new GetObjectCommand(params);
 
-  return url
+  const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
+
+  return url;
 }
 
 async function listFiles() {
