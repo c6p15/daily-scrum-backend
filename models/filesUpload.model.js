@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize")
-const { sequelize } = require("../configs/db")
+const { sequelize } = require("../configs/db.js")
 
 const FileUpload = sequelize.define("FileUpload", {
   id: {

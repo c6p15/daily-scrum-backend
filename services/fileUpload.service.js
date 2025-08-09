@@ -41,6 +41,4 @@ const handleFilesUpload = async (files) => {
     return uploadedFiles
 }
 
-module.exports = {
-    handleFilesUpload
-}
+module.exports = { handleFilesUpload }

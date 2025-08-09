@@ -4,7 +4,7 @@ const router = express.Router()
 const dailyScrumController = require('../controllers/dailyScrum.controller.js')
 const auth = require('../middleware/auth.js')
 
-const upload = multer();
+const upload = multer()
 
 router.get('/project/:id', dailyScrumController.getAllDailyScrums)
 router.get('/:id', dailyScrumController.getDailyScrumById)
