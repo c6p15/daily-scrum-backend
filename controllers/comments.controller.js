@@ -95,12 +95,12 @@ exports.createComment = async (req, res) => {
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
     const userProject = await UserProject.findByPk(dailyScrum.user_project_id, {
-      include: ['Project']
+      include: ["Project"],
     })
 
-    if (userProject) {
-      const projectTitle = userProject.Project?.title || 'your project'
-    
+    if (userProject && userProject.user_id !== userId) {
+      const projectTitle = userProject.Project?.title || "your project"
+
       const notification = await Notification.create({
         user_id: userProject.user_id,
         message: `${user.firstname} ${user.lastname} แสดงความคิดเห็นใน scrum ของคุณที่ ${projectTitle}`,
@@ -108,9 +108,9 @@ exports.createComment = async (req, res) => {
         daily_scrum_id,
         comment_id: newComment.id,
       })
-    
+
       await deleteFromCache(`notifications:user:${userProject.user_id}`)
-    
+
       if (global._io) {
         global._io.to(userProject.user_id.toString()).emit("notification", notification.toJSON())
         global._io.to(userProject.user_id.toString()).emit("notification:update")
@@ -122,7 +122,7 @@ exports.createComment = async (req, res) => {
     })
 
     if (createdComment?.User?.profile_pic) {
-      createdComment.User.profile_pic = await getObjectSignedUrl(createdComment.User.profile_pic);
+      createdComment.User.profile_pic = await getObjectSignedUrl(createdComment.User.profile_pic)
     }
 
     res.status(201).json({
