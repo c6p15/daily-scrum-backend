@@ -93,17 +93,12 @@ async function startServer() {
     global._io = io
 
     io.on("connection", (socket) => {
-      console.log("User connected:", socket.id)
-
       socket.on("join", (userId) => {
         if (userId) {
           socket.join(userId.toString())
-          console.log(`Socket ${socket.id} joined room for user ${userId}`)
         }
       })
-
       socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id)
       })
     })
 
