@@ -71,15 +71,15 @@ VALUES
 (8, 8, 5, 'CI/CD looks great. Just add rollback option.');
 
 -- 6. Notifications
-INSERT INTO notifications (id, user_id, type, daily_scrum_id, comment_id, message, status)
+INSERT INTO notifications (id, user_id, type, daily_scrum_id, comment_id, project_id, message, status)
 VALUES 
-(1, 1, 'reminder', NULL, NULL, 'Don’t forget to submit your scrum today!', 'unread'),
-(2, 2, 'new_comment', 1, 1, 'Bob commented on your scrum.', 'read'),
-(3, 3, 'late_notice', 2, NULL, 'You missed today’s scrum update.', 'unread'),
-(4, 4, 'new_comment', 4, 4, 'Alice commented on your scrum.', 'unread'),
-(5, 5, 'reminder', NULL, NULL, 'Reminder: Please submit your scrum today.', 'unread'),
-(6, 6, 'late_notice', 6, NULL, 'You missed today’s scrum.', 'unread'),
-(7, 2, 'new_comment', 7, 7, 'A teammate commented on your scrum.', 'read'),
-(8, 1, 'reminder', NULL, NULL, 'Post your scrum before 7 PM.', 'read');
+(1, 1, 'reminder', NULL, NULL, 1, 'Don’t forget to submit your scrum today!', 'unread'),
+(2, 2, 'new_comment', 1, 1, 1, 'Bob commented on your scrum.', 'read'),
+(3, 3, 'late_notice', 2, NULL, 1, 'You missed today’s scrum update.', 'unread'),
+(4, 4, 'new_comment', 4, 4, 2, 'Alice commented on your scrum.', 'unread'),
+(5, 5, 'reminder', NULL, NULL, 2, 'Reminder: Please submit your scrum today.', 'unread'),
+(6, 6, 'late_notice', 6, NULL, 3, 'You missed today’s scrum.', 'unread'),
+(7, 2, 'new_comment', 7, 7, 3, 'A teammate commented on your scrum.', 'read'),
+(8, 1, 'reminder', NULL, NULL, 1, 'Post your scrum before 7 PM.', 'read');
 
 COMMIT;

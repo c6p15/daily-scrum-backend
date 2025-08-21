@@ -23,6 +23,10 @@ const Notification = sequelize.define("Notification", {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  project_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   message: {
     type: DataTypes.TEXT,
     allowNull: false,

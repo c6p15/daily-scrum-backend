@@ -36,6 +36,9 @@ DailyScrum.hasMany(Notification, { foreignKey: "daily_scrum_id" })
 Notification.belongsTo(Comment, { foreignKey: "comment_id", onDelete: "SET NULL" })
 Comment.hasMany(Notification, { foreignKey: "comment_id" })
 
+Notification.belongsTo(Project, { foreignKey: "project_id", onDelete: "SET NULL" })
+Project.hasMany(Notification, { foreignKey: "project_id" })
+
 module.exports = {
   sequelize,
   User,

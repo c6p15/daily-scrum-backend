@@ -79,10 +79,12 @@ CREATE TABLE notifications (
   type ENUM('reminder', 'late_notice', 'new_comment') NOT NULL,
   daily_scrum_id INT,
   comment_id INT,
+  project_id INT,
   message TEXT NOT NULL,
   status ENUM('unread', 'read') DEFAULT 'unread',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (daily_scrum_id) REFERENCES daily_scrum(id) ON DELETE SET NULL,
-  FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE SET NULL
+  FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE SET NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
 );

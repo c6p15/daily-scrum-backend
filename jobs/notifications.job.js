@@ -32,22 +32,27 @@ async function checkNotifications(io) {
 
         if (!alreadySent) {
           console.log(`[REMINDER] Sending reminder for project ${project.id} (${project.title})`)
+
           for (const member of userProjects) {
             await Notification.create({
               user_id: member.user_id,
               type: "reminder",
+              project_id: project.id,
+              daily_scrum_id: null,
+              comment_id: null,
               message: `อย่าลืมโพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
             })
 
             await deleteFromCache(`notifications:user:${member.user_id}`)
             io.to(member.user_id.toString()).emit("notification", {
               type: "reminder",
+              project_id: project.id,
               message: `อย่าลืมโพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
             })
             io.to(member.user_id.toString()).emit("notification:update")
           }
 
-          await saveToCache(reminderKey, true, 60 * 60 * 6)
+          await saveToCache(reminderKey, true, 60 * 60 * 6) 
         }
       }
 
@@ -57,6 +62,7 @@ async function checkNotifications(io) {
 
         if (!alreadySent) {
           console.log(`[LATE NOTICE] Sending late notice for project ${project.id} (${project.title})`)
+
           const todayStart = moment().startOf("day").toDate()
 
           for (const member of userProjects) {
@@ -71,12 +77,16 @@ async function checkNotifications(io) {
               await Notification.create({
                 user_id: member.user_id,
                 type: "late_notice",
+                project_id: project.id,
+                daily_scrum_id: null,
+                comment_id: null,
                 message: `คุณยังไม่ได้โพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
               })
 
               await deleteFromCache(`notifications:user:${member.user_id}`)
               io.to(member.user_id.toString()).emit("notification", {
                 type: "late_notice",
+                project_id: project.id,
                 message: `คุณยังไม่ได้โพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
               })
               io.to(member.user_id.toString()).emit("notification:update")

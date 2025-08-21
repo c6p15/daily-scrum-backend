@@ -1,4 +1,4 @@
-const { Comment, DailyScrum, Notification, User, UserProject } = require("../models/index.js")
+const { Comment, DailyScrum, Notification, User, UserProject, Project } = require("../models/index.js")
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 const { getObjectSignedUrl } = require("../services/storage.service.js")
 
@@ -79,12 +79,11 @@ exports.createComment = async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ["firstname", "lastname"]
+      attributes: ["firstname", "lastname"],
     })
-
     if (!user) {
       return res.status(404).json({ error: "User not found" })
-    } 
+    }
 
     const newComment = await Comment.create({
       daily_scrum_id,
@@ -95,7 +94,7 @@ exports.createComment = async (req, res) => {
     await deleteFromCache(`comments:scrum:${daily_scrum_id}`)
 
     const userProject = await UserProject.findByPk(dailyScrum.user_project_id, {
-      include: ["Project"],
+      include: [{ model: Project, attributes: ["id", "title"] }],
     })
 
     if (userProject && userProject.user_id !== userId) {
@@ -107,22 +106,32 @@ exports.createComment = async (req, res) => {
         type: "new_comment",
         daily_scrum_id,
         comment_id: newComment.id,
+        project_id: userProject.Project?.id || null,
       })
 
       await deleteFromCache(`notifications:user:${userProject.user_id}`)
 
       if (global._io) {
-        global._io.to(userProject.user_id.toString()).emit("notification", notification.toJSON())
-        global._io.to(userProject.user_id.toString()).emit("notification:update")
+        global._io
+          .to(userProject.user_id.toString())
+          .emit("notification", notification.toJSON())
+        global._io
+          .to(userProject.user_id.toString())
+          .emit("notification:update")
       }
     }
 
     const createdComment = await Comment.findByPk(newComment.id, {
-      include: { model: User, attributes: ["id", "firstname", "lastname", "profile_pic"] },
+      include: {
+        model: User,
+        attributes: ["id", "firstname", "lastname", "profile_pic"],
+      },
     })
 
     if (createdComment?.User?.profile_pic) {
-      createdComment.User.profile_pic = await getObjectSignedUrl(createdComment.User.profile_pic)
+      createdComment.User.profile_pic = await getObjectSignedUrl(
+        createdComment.User.profile_pic
+      )
     }
 
     res.status(201).json({
@@ -131,7 +140,9 @@ exports.createComment = async (req, res) => {
       comment: createdComment,
     })
   } catch (err) {
-    res.status(500).json({ error: "Create failed", details: err.message })
+    res
+      .status(500)
+      .json({ error: "Create failed", details: err.message })
   }
 }
 
