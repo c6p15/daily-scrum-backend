@@ -18,10 +18,8 @@ const responseWithMembers = async (project) => {
 
         if (user.profile_pic) {
           if (user.profile_pic.startsWith("http")) {
-            // Already a full URL, use directly
             profilePicUrl = user.profile_pic
           } else {
-            // Needs signed/local URL
             profilePicUrl = await getObjectSignedUrl(user.profile_pic)
           }
         }
