@@ -3,6 +3,7 @@ const moment = require("moment")
 const { User, UserProject, Project, Notification, DailyScrum } = require("../models/index.js")
 const { deleteFromCache, getFromCache, saveToCache } = require("../services/redis.service.js")
 const { Op } = require("sequelize")
+const { sendMail } = require("../services/mailer.service.js")
 
 async function checkNotifications(io) {
   const now = moment()
@@ -44,15 +45,26 @@ async function checkNotifications(io) {
             })
 
             await deleteFromCache(`notifications:user:${member.user_id}`)
+
             io.to(member.user_id.toString()).emit("notification", {
               type: "reminder",
               project_id: project.id,
               message: `อย่าลืมโพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
             })
             io.to(member.user_id.toString()).emit("notification:update")
+
+            if (member.User?.email) {
+              sendMail({
+                to: member.User.email,
+                subject: `Reminder: Daily Scrum ของ ${project.title}`,
+                html: `<p>อย่าลืมโพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!</p>`,
+              }).catch(err => {
+                console.error(`Failed to send reminder email to ${member.User.email}:`, err.message)
+              })
+            }
           }
 
-          await saveToCache(reminderKey, true, 60 * 60 * 6) 
+          await saveToCache(reminderKey, true, 60 * 60 * 6)
         }
       }
 
@@ -84,16 +96,27 @@ async function checkNotifications(io) {
               })
 
               await deleteFromCache(`notifications:user:${member.user_id}`)
+
               io.to(member.user_id.toString()).emit("notification", {
                 type: "late_notice",
                 project_id: project.id,
                 message: `คุณยังไม่ได้โพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!`,
               })
               io.to(member.user_id.toString()).emit("notification:update")
+
+              if (member.User?.email) {
+                sendMail({
+                  to: member.User.email,
+                  subject: `Late Notice: Daily Scrum ของ ${project.title}`,
+                  html: `<p>คุณยังไม่ได้โพสต์ Daily Scrum ของ ${project.title} วันนี้นะ!</p>`,
+                }).catch(err => {
+                  console.error(`Failed to send late notice email to ${member.User.email}:`, err.message)
+                })
+              }
             }
           }
 
-          await saveToCache(lateKey, true, 60 * 60 * 6) 
+          await saveToCache(lateKey, true, 60 * 60 * 6)
         }
       }
     }

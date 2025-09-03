@@ -254,10 +254,10 @@ exports.forgotPassword = async (req, res) => {
       html: `<p>Your OTP code is: <b>${otp}</b></p><p>It expires in 10 minutes.</p>`,
     })
       .then(() => {
-        console.log(`✅ OTP email sent to ${email}`)
+        console.log(`OTP email sent to ${email}`)
       })
       .catch((err) => {
-        console.error(`❌ OTP email failed to send to ${email}:`, err)
+        console.error(`OTP email failed to send to ${email}:`, err)
       })
 
     res.status(200).json({ message: "OTP sent to your email.", status: 200 })
@@ -285,10 +285,10 @@ exports.resendOtp = async (req, res) => {
       html: `<p>Your new OTP code is: <b>${otp}</b></p><p>It expires in 10 minutes.</p>`,
     })
       .then(() => {
-        console.log(`✅ OTP re-sent to ${email}`)
+        console.log(`OTP re-sent to ${email}`)
       })
       .catch((err) => {
-        console.error(`❌ Failed to resend OTP to ${email}:`, err)
+        console.error(`Failed to resend OTP to ${email}:`, err)
       })
 
     res.status(200).json({ message: "OTP resent to your email.", status: 200 })
