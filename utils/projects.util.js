@@ -15,9 +15,17 @@ const responseWithMembers = async (project) => {
       (project.UserProjects || []).map(async (link) => {
         const user = link.User
         let profilePicUrl = null
+
         if (user.profile_pic) {
-          profilePicUrl = await getObjectSignedUrl(user.profile_pic)
+          if (user.profile_pic.startsWith("http")) {
+            // Already a full URL, use directly
+            profilePicUrl = user.profile_pic
+          } else {
+            // Needs signed/local URL
+            profilePicUrl = await getObjectSignedUrl(user.profile_pic)
+          }
         }
+
         return {
           id: user.id,
           firstname: user.firstname,
