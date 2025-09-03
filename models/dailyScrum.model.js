@@ -8,7 +8,7 @@ const DailyScrum = sequelize.define("DailyScrum", {
     primaryKey: true,
   },
   type: {
-    type: DataTypes.ENUM("daily", "friday", "retrospective"),
+    type: DataTypes.ENUM("daily", "weekly", "retrospective"),
     allowNull: false,
   },
   today_task: DataTypes.TEXT,
