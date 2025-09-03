@@ -75,6 +75,27 @@ VALUES
 (27, 'daily', 'เพิ่ม export CSV', 'Export ช้า', 'minor', 'ปรับ batch', 'Export สำเร็จ', 'Export ยังช้า', 'ปรับ query', NULL, 4),
 (28, 'retrospective', 'สรุป sprint Analytics', 'บาง KPI ไม่ตรง', 'moderate', 'ปรับ logic KPI', 'Dashboard ใช้งานดี', 'บาง KPI ผิด', 'แก้ calculation', NULL, 4);
 
+UPDATE daily_scrum SET created_at = '2025-08-04 09:00:00' WHERE id = 9;
+UPDATE daily_scrum SET created_at = '2025-08-04 09:30:00' WHERE id = 10;
+UPDATE daily_scrum SET created_at = '2025-08-04 10:00:00' WHERE id = 11;
+UPDATE daily_scrum SET created_at = '2025-08-04 10:30:00' WHERE id = 12;
+UPDATE daily_scrum SET created_at = '2025-08-04 11:00:00' WHERE id = 13;
+UPDATE daily_scrum SET created_at = '2025-08-05 09:00:00' WHERE id = 14;
+UPDATE daily_scrum SET created_at = '2025-08-05 09:30:00' WHERE id = 15;
+UPDATE daily_scrum SET created_at = '2025-08-05 10:00:00' WHERE id = 16;
+UPDATE daily_scrum SET created_at = '2025-08-05 10:30:00' WHERE id = 17;
+UPDATE daily_scrum SET created_at = '2025-08-05 11:00:00' WHERE id = 18;
+UPDATE daily_scrum SET created_at = '2025-08-06 09:00:00' WHERE id = 19;
+UPDATE daily_scrum SET created_at = '2025-08-06 09:30:00' WHERE id = 20;
+UPDATE daily_scrum SET created_at = '2025-08-06 10:00:00' WHERE id = 21;
+UPDATE daily_scrum SET created_at = '2025-08-06 10:30:00' WHERE id = 22;
+UPDATE daily_scrum SET created_at = '2025-08-06 11:00:00' WHERE id = 23;
+UPDATE daily_scrum SET created_at = '2025-08-07 09:00:00' WHERE id = 24;
+UPDATE daily_scrum SET created_at = '2025-08-07 09:30:00' WHERE id = 25;
+UPDATE daily_scrum SET created_at = '2025-08-07 10:00:00' WHERE id = 26;
+UPDATE daily_scrum SET created_at = '2025-08-07 10:30:00' WHERE id = 27;
+UPDATE daily_scrum SET created_at = '2025-08-07 11:00:00' WHERE id = 28;
+
 -- 5. Comments
 INSERT INTO comments (id, daily_scrum_id, user_id, comment)
 VALUES 
