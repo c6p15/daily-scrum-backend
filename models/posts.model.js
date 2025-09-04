@@ -1,19 +1,18 @@
 const { DataTypes } = require("sequelize")
 const { sequelize } = require("../configs/db.js")
 
-const DailyScrum = sequelize.define("DailyScrum", {
+const Post = sequelize.define("Post", {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
   type: {
-    type: DataTypes.ENUM("daily", "weekly", "retrospective"),
+    type: DataTypes.ENUM("daily", "weekly"),
     allowNull: false,
   },
   today_task: DataTypes.TEXT,
   problem: DataTypes.TEXT,
-  problem_level: DataTypes.ENUM("minor", "moderate", "critical"),
   tomorrow_task: DataTypes.TEXT,
   good: DataTypes.TEXT,
   bad: DataTypes.TEXT,
@@ -28,8 +27,8 @@ const DailyScrum = sequelize.define("DailyScrum", {
     defaultValue: DataTypes.NOW,
   },
 }, {
-  tableName: "daily_scrum",
+  tableName: "posts",
   timestamps: false,
 })
 
-module.exports = DailyScrum
+module.exports = Post

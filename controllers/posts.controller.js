@@ -1,19 +1,19 @@
 const moment = require('moment')
-const { DailyScrum, UserProject, FilesUpload, Project } = require("../models/index.js")
+const { Post, UserProject, FilesUpload, Project } = require("../models/index.js")
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 const { handleFilesUpload } = require('../services/fileUpload.service.js')
 const { deleteFile } = require('../services/storage.service.js')
 const { formatDailyScrum } = require('../utils/dailyScrum.util.js')
 
-exports.getAllDailyScrums = async (req, res) => {
+exports.getAllPosts = async (req, res) => {
   const { id: projectId } = req.params
-  const cacheKey = `dailyscrums:project:${projectId}`
+  const cacheKey = `posts:project:${projectId}`
 
   try {
     const cached = await getFromCache(cacheKey)
-    if (cached) return res.status(200).json({ message: "Fetch daily scrums successfully!", status: 200, scrums: cached })
+    if (cached) return res.status(200).json({ message: "Fetch posts successfully!", status: 200, posts: cached })
 
-    const scrums = await DailyScrum.findAll({
+    const posts = await Post.findAll({
       include: [
         {
           model: UserProject,
@@ -27,60 +27,60 @@ exports.getAllDailyScrums = async (req, res) => {
       ],
     })
 
-    const formattedScrums = await Promise.all(scrums.map(formatDailyScrum))
+    const formattedPosts = await Promise.all(posts.map(formatDailyScrum))
 
-    await saveToCache(cacheKey, formattedScrums)
+    await saveToCache(cacheKey, formattedPosts)
 
     res.status(200).json({
-      message: "Fetch daily scrums successfully!",
+      message: "Fetch posts successfully!",
       status: 200,
-      scrums: formattedScrums,
+      posts: formattedPosts,
     })
   } catch (err) {
-    console.error("Get daily scrums error:", err)
+    console.error("Get posts error:", err)
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
 }
 
-exports.getDailyScrumById = async (req, res) => {
+exports.getPostById = async (req, res) => {
   const { id } = req.params
-  const cacheKey = `dailyscrum:one:${id}`
+  const cacheKey = `posts:one:${id}`
 
   try {
     const cached = await getFromCache(cacheKey)
     if (cached)
       return res.status(200).json({
-        message: "Fetch daily scrum successfully!",
+        message: "Fetch post successfully!",
         status: 200,
-        scrum: cached,
+        post: cached,
       })
 
-    const scrum = await DailyScrum.findByPk(id, {
+    const post = await Post.findByPk(id, {
       include: [
         { model: UserProject, include: ["Project", "User"] },
         { model: FilesUpload },
       ],
     })
 
-    if (!scrum) {
-      return res.status(404).json({ error: "Scrum not found" })
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" })
     }
 
-    const formattedScrum = await formatDailyScrum(scrum)
+    const formattedPost = await formatDailyScrum(post)
 
-    await saveToCache(cacheKey, formattedScrum)
+    await saveToCache(cacheKey, formattedPost)
 
     res.status(200).json({
-      message: "Fetch daily scrum successfully!",
+      message: "Fetch post successfully!",
       status: 200,
-      scrum: formattedScrum,
+      post: formattedPost,
     })
   } catch (err) {
     res.status(500).json({ error: "Fetch failed", details: err.message })
   }
 }
 
-exports.createDailyScrum = async (req, res) => {
+exports.createPost = async (req, res) => {
   const userId = req.user.id
   const { project_id, created_at, ...rest } = req.body
 
@@ -110,7 +110,7 @@ exports.createDailyScrum = async (req, res) => {
       customCreatedAt = new Date(created_at)
     }
 
-    const scrum = await DailyScrum.create({
+    const post = await Post.create({
       ...rest,
       user_project_id: userProject.id,
       created_at: customCreatedAt,
@@ -143,7 +143,7 @@ exports.createDailyScrum = async (req, res) => {
 
       for (const fileName of uploaded.image) {
         fileEntries.push({
-          daily_scrum_id: scrum.id,
+          post_id: post.id,
           file_url: fileName,
           mime_type: "image/webp",
           file_name: fileName,
@@ -155,7 +155,7 @@ exports.createDailyScrum = async (req, res) => {
         const mime = ext === "pdf" ? "application/pdf" : "application/octet-stream"
 
         fileEntries.push({
-          daily_scrum_id: scrum.id,
+          post_id: post.id,
           file_url: fileName,
           mime_type: mime,
           file_name: fileName,
@@ -165,36 +165,35 @@ exports.createDailyScrum = async (req, res) => {
       await FilesUpload.bulkCreate(fileEntries)
     }
 
-    const fullScrum = await DailyScrum.findByPk(scrum.id, {
+    const fullPost = await Post.findByPk(post.id, {
       include: [
         { model: FilesUpload },
         { model: UserProject, include: ["User"] },
       ],
     })
 
-    const formattedScrum = await formatDailyScrum(fullScrum)
+    const formattedPost = await formatDailyScrum(fullPost)
 
-    await deleteFromCache(`dailyscrums:user:${userId}`)
-    await deleteFromCache(`dailyscrums:project:${project_id}`)
+    await deleteFromCache(`posts:user:${userId}`)
+    await deleteFromCache(`posts:project:${project_id}`)
 
     return res.status(201).json({
-      message: "Create daily scrum successfully!",
+      message: "Create post successfully!",
       status: 201,
-      scrum: formattedScrum,
+      post: formattedPost,
     })
   } catch (err) {
     return res.status(500).json({ error: "Create failed", details: err.message })
   }
 }
 
-exports.updateDailyScrum = async (req, res) => {
+exports.updatePost = async (req, res) => {
   const { id } = req.params
   const userId = req.user.id
   const {
     type,
     today_task,
     problem,
-    problem_level,
     tomorrow_task,
     good,
     bad,
@@ -203,22 +202,21 @@ exports.updateDailyScrum = async (req, res) => {
   } = req.body
 
   try {
-    const scrum = await DailyScrum.findByPk(id, {
+    const post = await Post.findByPk(id, {
       include: [
         { model: UserProject, include: ["Project", "User"] },
         { model: FilesUpload },
       ],
     })
 
-    if (!scrum || scrum.UserProject.user_id !== userId) {
+    if (!post || post.UserProject.user_id !== userId) {
       return res.status(403).json({ error: "You can't edit this post" })
     }
 
-    await scrum.update({
+    await post.update({
       type,
       today_task,
       problem,
-      problem_level,
       tomorrow_task,
       good,
       bad,
@@ -232,7 +230,7 @@ exports.updateDailyScrum = async (req, res) => {
 
       for (const fileName of uploaded.image) {
         fileEntries.push({
-          daily_scrum_id: scrum.id,
+          post_id: post.id,
           file_url: fileName,
           mime_type: "image/webp",
           file_name: fileName,
@@ -244,7 +242,7 @@ exports.updateDailyScrum = async (req, res) => {
         const mime = ext === "pdf" ? "application/pdf" : `application/octet-stream`
 
         fileEntries.push({
-          daily_scrum_id: scrum.id,
+          post_id: post.id,
           file_url: fileName,
           mime_type: mime,
           file_name: fileName,
@@ -254,58 +252,58 @@ exports.updateDailyScrum = async (req, res) => {
       await FilesUpload.bulkCreate(fileEntries)
     }
 
-    const updatedScrum = await DailyScrum.findByPk(id, {
+    const updatedPost = await Post.findByPk(id, {
       include: [
         { model: FilesUpload },
         { model: UserProject, include: ["User"] },
       ],
     })
 
-    const formattedScrum = await formatDailyScrum(updatedScrum)
+    const formattedPost = await formatDailyScrum(updatedPost)
 
-    await deleteFromCache(`dailyscrum:one:${id}`)
-    await deleteFromCache(`dailyscrums:user:${userId}`)
-    if (scrum.UserProject?.project_id) {
-      await deleteFromCache(`dailyscrums:project:${scrum.UserProject.project_id}`)
+    await deleteFromCache(`posts:one:${id}`)
+    await deleteFromCache(`posts:user:${userId}`)
+    if (post.UserProject?.project_id) {
+      await deleteFromCache(`posts:project:${post.UserProject.project_id}`)
     }
 
     return res.status(200).json({
-      message: "Update daily Scrum successfully!",
+      message: "Update post successfully!",
       status: 200,
-      scrum: formattedScrum,
+      post: formattedPost,
     })
   } catch (err) {
     return res.status(500).json({ error: "Update failed", details: err.message })
   }
 }
 
-exports.deleteDailyScrum = async (req, res) => {
+exports.deletePost = async (req, res) => {
   try {
     const { id } = req.params
 
-    const dailyScrum = await DailyScrum.findByPk(id, {
+    const post = await Post.findByPk(id, {
       include: [
         { model: FilesUpload, as: "FileUploads" },
         { model: UserProject },
       ],
     })
 
-    if (!dailyScrum) return res.status(404).json({ message: "Not found" })
+    if (!post) return res.status(404).json({ message: "Not found" })
 
-    const deletePromises = dailyScrum.FileUploads.map(async (file) => {
+    const deletePromises = post.FileUploads.map(async (file) => {
       await deleteFile(file.file_url)
       await file.destroy()
     })
     await Promise.all(deletePromises)
 
-    await dailyScrum.destroy()
+    await post.destroy()
 
-    await deleteFromCache(`dailyscrum:one:${id}`)
-    await deleteFromCache(`dailyscrums:all`)
-    await deleteFromCache(`dailyscrums:user:${dailyScrum.user_project_id}`)
-    await deleteFromCache(`dailyscrums:project:${dailyScrum.UserProject?.project_id}`)
+    await deleteFromCache(`posts:one:${id}`)
+    await deleteFromCache(`posts:all`)
+    await deleteFromCache(`posts:user:${post.user_project_id}`)
+    await deleteFromCache(`posts:project:${post.UserProject?.project_id}`)
 
-    res.status(200).json({ message: "Delete daily scrum successfully!", status: 200 })
+    res.status(200).json({ message: "Delete post successfully!", status: 200 })
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
@@ -320,31 +318,31 @@ exports.deleteSingleFile = async (req, res) => {
   }
 
   try {
-    const dailyScrum = await DailyScrum.findByPk(id, {
+    const post = await Post.findByPk(id, {
       include: [
         { model: FilesUpload, as: "FileUploads" },
         { model: UserProject },
       ],
     })
 
-    if (!dailyScrum) {
-      return res.status(404).json({ message: 'Daily scrum post not found' })
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' })
     }
 
-    const fileToDelete = dailyScrum.FileUploads.find(f => f.file_url === fileName)
+    const fileToDelete = post.FileUploads.find(f => f.file_url === fileName)
     if (!fileToDelete) {
-      return res.status(404).json({ message: 'File not found in this scrum post' })
+      return res.status(404).json({ message: 'File not found in this post' })
     }
 
     await deleteFile(fileName)
     await fileToDelete.destroy()
 
-    await deleteFromCache(`dailyscrum:one:${id}`)
-    await deleteFromCache(`dailyscrums:all`)
-    await deleteFromCache(`dailyscrums:user:${dailyScrum.UserProject?.user_id}`)
-    await deleteFromCache(`dailyscrums:project:${dailyScrum.UserProject?.project_id}`)
+    await deleteFromCache(`posts:one:${id}`)
+    await deleteFromCache(`posts:all`)
+    await deleteFromCache(`posts:user:${post.UserProject?.user_id}`)
+    await deleteFromCache(`posts:project:${post.UserProject?.project_id}`)
 
-    res.status(200).json({ message: "File deleted successfully", status: 200 })
+    res.status(200).json({ message: "File deleted successfully!", status: 200 })
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }

@@ -1,6 +1,6 @@
 const cron = require("node-cron")
 const moment = require("moment")
-const { User, UserProject, Project, Notification, DailyScrum } = require("../models/index.js")
+const { User, UserProject, Project, Notification, Post } = require("../models/index.js")
 const { deleteFromCache, getFromCache, saveToCache } = require("../services/redis.service.js")
 const { Op } = require("sequelize")
 const { sendMail } = require("../services/mailer.service.js")
@@ -78,7 +78,7 @@ async function checkNotifications(io) {
           const todayStart = moment().startOf("day").toDate()
 
           for (const member of userProjects) {
-            const hasPosted = await DailyScrum.findOne({
+            const hasPosted = await Post.findOne({
               where: {
                 user_project_id: member.id,
                 created_at: { [Op.gte]: todayStart },

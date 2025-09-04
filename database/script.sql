@@ -33,12 +33,11 @@ CREATE TABLE user_project (
 );
 
 -- 4. Daily Scrum
-CREATE TABLE daily_scrum (
+CREATE TABLE posts (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  type ENUM('daily', 'friday', 'retrospective') NOT NULL,
+  type ENUM('daily', 'weekly') NOT NULL,
   today_task TEXT,
   problem TEXT,
-  problem_level ENUM('minor', 'moderate', 'critical'),
   tomorrow_task TEXT,
   good TEXT,
   bad TEXT,
@@ -52,24 +51,24 @@ CREATE TABLE daily_scrum (
 -- 5. Comments
 CREATE TABLE comments (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  daily_scrum_id INT,
+  post_id INT,
   user_id INT,
   comment TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (daily_scrum_id) REFERENCES daily_scrum(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 6. File Upload
 CREATE TABLE files_upload (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  daily_scrum_id INT,
+  post_id INT,
   file_url TEXT NOT NULL,
   file_name VARCHAR(255),
   mime_type VARCHAR(100),
   file_size INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (daily_scrum_id) REFERENCES daily_scrum(id) ON DELETE CASCADE
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
 -- 7. Notifications
@@ -77,14 +76,14 @@ CREATE TABLE notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT,
   type ENUM('reminder', 'late_notice', 'new_comment') NOT NULL,
-  daily_scrum_id INT,
+  post_id INT,
   comment_id INT,
   project_id INT,
   message TEXT NOT NULL,
   status ENUM('unread', 'read') DEFAULT 'unread',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (daily_scrum_id) REFERENCES daily_scrum(id) ON DELETE SET NULL,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL,
   FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE SET NULL,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
 );

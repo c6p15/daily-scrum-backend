@@ -57,15 +57,15 @@ app.get("/api/files/:filename", async (req, res) => {
 
 const userRoutes = require('../routes/users.route.js')
 const projectRoutes = require('../routes/projects.route.js')
-const dailyScrumRoutes = require('../routes/dailyScrum.route.js')
+const postRoutes = require('../routes/posts.route.js')
 const commentRoutes = require('../routes/comments.route.js')
 const oauthRoutes = require('../routes/oauth.route.js')
-const notificationRoutes = require('../routes/notification.route.js')
+const notificationRoutes = require('../routes/notifications.route.js')
 
 app.use('/auth', oauthRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
-app.use('/api/daily-scrum', dailyScrumRoutes)
+app.use('/api/posts', postRoutes)
 app.use('/api/comments', commentRoutes)
 app.use('/api/notifications', notificationRoutes)
 

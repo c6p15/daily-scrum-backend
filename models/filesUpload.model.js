@@ -7,7 +7,7 @@ const FileUpload = sequelize.define("FileUpload", {
     autoIncrement: true,
     primaryKey: true,
   },
-  daily_scrum_id: {
+  post_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },

@@ -1,6 +1,6 @@
 const {
   Comment,
-  DailyScrum,
+  Post,
   Notification,
   User,
   UserProject,
@@ -15,8 +15,8 @@ const { getObjectSignedUrl } = require("../services/storage.service.js");
 const { sendMail } = require("../services/mailer.service.js");
 
 exports.getAllComments = async (req, res) => {
-  const { daily_scrum_id } = req.params;
-  const cacheKey = `comments:scrum:${daily_scrum_id}`;
+  const { post_id } = req.params;
+  const cacheKey = `comments:scrum:${post_id}`;
 
   try {
     const cached = await getFromCache(cacheKey);
@@ -28,7 +28,7 @@ exports.getAllComments = async (req, res) => {
       });
 
     const comments = await Comment.findAll({
-      where: { daily_scrum_id },
+      where: { post_id },
       include: {
         model: User,
         attributes: ["id", "firstname", "lastname", "profile_pic"],
@@ -84,13 +84,13 @@ exports.getCommentById = async (req, res) => {
 };
 
 exports.createComment = async (req, res) => {
-  const { daily_scrum_id } = req.params;
+  const { post_id } = req.params;
   const { comment } = req.body;
   const userId = req.user.id;
 
   try {
-    const dailyScrum = await DailyScrum.findByPk(daily_scrum_id);
-    if (!dailyScrum) {
+    const post = await Post.findByPk(post_id);
+    if (!post) {
       return res.status(404).json({ error: "Daily scrum not found" });
     }
 
@@ -102,14 +102,14 @@ exports.createComment = async (req, res) => {
     }
 
     const newComment = await Comment.create({
-      daily_scrum_id,
+      post_id,
       user_id: userId,
       comment,
     });
 
-    await deleteFromCache(`comments:scrum:${daily_scrum_id}`);
+    await deleteFromCache(`comments:scrum:${post_id}`);
 
-    const userProject = await UserProject.findByPk(dailyScrum.user_project_id, {
+    const userProject = await UserProject.findByPk(post.user_project_id, {
       include: [
         { model: User, attributes: ["id", "firstname", "lastname", "email"] },
         { model: Project, attributes: ["id", "title"] },
@@ -125,7 +125,7 @@ exports.createComment = async (req, res) => {
         user_id: scrumOwner.id,
         message: `${user.firstname} ${user.lastname} แสดงความคิดเห็นใน scrum ของคุณที่ ${projectTitle}`,
         type: "new_comment",
-        daily_scrum_id,
+        post_id,
         comment_id: newComment.id,
         project_id: userProject?.Project?.id || null,
       });
@@ -196,7 +196,7 @@ exports.updateComment = async (req, res) => {
 
     await existingComment.update({ comment });
 
-    await deleteFromCache(`comments:scrum:${existingComment.daily_scrum_id}`);
+    await deleteFromCache(`comments:scrum:${existingComment.post_id}`);
 
     const updatedComment = await Comment.findByPk(id, {
       include: {
@@ -235,10 +235,10 @@ exports.deleteComment = async (req, res) => {
     if (comment.user_id !== userId)
       return res.status(403).json({ error: "Unauthorized" });
 
-    const dailyScrumId = comment.daily_scrum_id;
+    const postId = comment.post_id;
 
     await comment.destroy();
-    await deleteFromCache(`comments:scrum:${dailyScrumId}`);
+    await deleteFromCache(`comments:scrum:${postId}`);
 
     res.status(200).json({
       message: "Delete comment successfully!",
