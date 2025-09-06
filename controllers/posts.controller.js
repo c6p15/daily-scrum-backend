@@ -3,7 +3,7 @@ const { Post, UserProject, FilesUpload, Project } = require("../models/index.js"
 const { getFromCache, saveToCache, deleteFromCache } = require("../services/redis.service.js")
 const { handleFilesUpload } = require('../services/fileUpload.service.js')
 const { deleteFile } = require('../services/storage.service.js')
-const { formatDailyScrum } = require('../utils/dailyScrum.util.js')
+const { formatPost } = require('../utils/posts.util.js')
 
 exports.getAllPosts = async (req, res) => {
   const { id: projectId } = req.params
@@ -27,7 +27,7 @@ exports.getAllPosts = async (req, res) => {
       ],
     })
 
-    const formattedPosts = await Promise.all(posts.map(formatDailyScrum))
+    const formattedPosts = await Promise.all(posts.map(formatPost))
 
     await saveToCache(cacheKey, formattedPosts)
 
@@ -66,7 +66,7 @@ exports.getPostById = async (req, res) => {
       return res.status(404).json({ error: "Post not found" })
     }
 
-    const formattedPost = await formatDailyScrum(post)
+    const formattedPost = await formatPost(post)
 
     await saveToCache(cacheKey, formattedPost)
 
@@ -172,7 +172,7 @@ exports.createPost = async (req, res) => {
       ],
     })
 
-    const formattedPost = await formatDailyScrum(fullPost)
+    const formattedPost = await formatPost(fullPost)
 
     await deleteFromCache(`posts:user:${userId}`)
     await deleteFromCache(`posts:project:${project_id}`)
@@ -259,7 +259,7 @@ exports.updatePost = async (req, res) => {
       ],
     })
 
-    const formattedPost = await formatDailyScrum(updatedPost)
+    const formattedPost = await formatPost(updatedPost)
 
     await deleteFromCache(`posts:one:${id}`)
     await deleteFromCache(`posts:user:${userId}`)

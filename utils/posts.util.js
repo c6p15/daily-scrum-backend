@@ -1,4 +1,4 @@
-const { DailyScrum, UserProject, User, FileUpload, Project } = require('../models')
+const { Post, UserProject, User, FileUpload, Project } = require('../models')
 const { getObjectSignedUrl } = require('../services/storage.service')
 
 const formatUserFromScrum = async (userProject) => {
@@ -19,7 +19,7 @@ const formatUserFromScrum = async (userProject) => {
   }
 }
 
-const formatDailyScrum = async (scrum) => {
+const formatPost = async (scrum) => {
   const files = await Promise.all(
     (scrum.FileUploads || []).map(async (file) => {
       const signedUrl = await getObjectSignedUrl(file.file_url)
@@ -40,7 +40,6 @@ const formatDailyScrum = async (scrum) => {
     type: scrum.type,
     today_task: scrum.today_task,
     problem: scrum.problem,
-    problem_level: scrum.problem_level,
     tomorrow_task: scrum.tomorrow_task,
     good: scrum.good,
     bad: scrum.bad,
@@ -53,4 +52,4 @@ const formatDailyScrum = async (scrum) => {
   }
 }
 
-module.exports = { formatDailyScrum }
+module.exports = { formatPost }
