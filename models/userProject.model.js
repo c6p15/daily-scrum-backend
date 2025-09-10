@@ -17,7 +17,7 @@ const UserProject = sequelize.define("UserProject", {
   },
   position: DataTypes.STRING(100),
   scrum_point: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.FLOAT,
     defaultValue: 0,
   },
   is_pinned: {
