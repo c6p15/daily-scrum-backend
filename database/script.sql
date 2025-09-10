@@ -26,13 +26,13 @@ CREATE TABLE user_project (
   user_id INT,
   project_id INT,
   position VARCHAR(100),
-  scrum_point INT DEFAULT 0,
+  scrum_point FLOAT DEFAULT 0,
   is_pinned BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
--- 4. Daily Scrum
+-- 4. Posts
 CREATE TABLE posts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   type ENUM('daily', 'weekly') NOT NULL,
