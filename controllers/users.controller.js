@@ -3,10 +3,7 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models/index.js")
 const { Op } = require("sequelize")
 const { handleFilesUpload } = require("../services/fileUpload.service.js")
-const {
-  getObjectSignedUrl,
-  deleteFile,
-} = require("../services/storage.service.js")
+const { getObjectSignedUrl,deleteFile } = require("../services/storage.service.js")
 const { redisClient } = require("../configs/redis.js")
 const { sendMail } = require("../services/mailer.service.js")
 const generateOtp = require("../utils/generateOtp.util.js")
