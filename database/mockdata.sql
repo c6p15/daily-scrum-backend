@@ -15,12 +15,12 @@ START TRANSACTION;
 -- 1. Users
 INSERT INTO users (id, firstname, lastname, email, password, profile_pic)
 VALUES 
-(1, 'Alice', 'Nguyen', 'alice@example.com', 'hashedpassword1', NULL),
-(2, 'Bob', 'Chaiyasit', 'bob@example.com', 'hashedpassword2', NULL),
-(3, 'Charlie', 'Tan', 'charlie@example.com', 'hashedpassword3', NULL),
-(4, 'David', 'Wong', 'david@example.com', 'hashedpassword4', NULL),
-(5, 'Eva', 'Lim', 'eva@example.com', 'hashedpassword5', NULL),
-(6, 'Frank', 'Somsak', 'frank@example.com', 'hashedpassword6', NULL);
+(1, 'สมศักดิ์', 'มีชัย', 'somsak_0@example.com', 'hashedpassword1', NULL),
+(2, 'กรรชัย', 'ไชยสิทธ์', 'chaiyasitto123@example.com', 'hashedpassword2', NULL),
+(3, 'ศรรตวัต', 'ทันตา', 'sattawat_tanta@example.com', 'hashedpassword3', NULL),
+(4, 'นฤพร', 'คงใจรัก', 'pampam1998@example.com', 'hashedpassword4', NULL),
+(5, 'ทฤพงค์', 'รมย์รื่น', 'tpRomreun@example.com', 'hashedpassword5', NULL),
+(6, 'ผ่องพันธ์', 'อภิรมย์โพไทร', 'ApiromPosai_45@example.com', 'hashedpassword6', NULL);
 
 -- 2. Projects (เกี่ยวกับการทำระบบ Daily Scrum)
 INSERT INTO projects (id, title, description, status, deadline_date, scrum_time)
@@ -157,14 +157,6 @@ UPDATE posts SET created_at = '2025-08-13 18:40:00' WHERE id = 48;
 UPDATE posts SET created_at = '2025-08-14 18:00:00' WHERE id = 49;
 UPDATE posts SET created_at = '2025-08-14 19:05:00' WHERE id = 50; 
 
-UPDATE user_project up
-JOIN posts p ON up.id = p.user_project_id
-SET up.scrum_point = CASE
-    WHEN TIME(p.created_at) > '19:00:00' THEN 0.5 
-    WHEN TIME(p.created_at) < '07:00:00' THEN 1    
-    ELSE 1                                         
-END;
-
 -- 5. Comments
 INSERT INTO comments (id, post_id, user_id, comment)
 VALUES 
@@ -181,5 +173,25 @@ VALUES
 (3, 3, 'late_notice', 2, NULL, 1, 'คุณลืมโพสต์ Scrum ของวันนี้', 'unread'),
 (4, 4, 'new_comment', 4, 4, 3, 'Alice คอมเมนต์บนโพสต์ Scrum ของคุณ', 'read'),
 (5, 5, 'reminder', NULL, NULL, 2, 'ได้เวลาโพสต์ Scrum แล้ว อย่าลืม!', 'unread');
+
+SET SQL_SAFE_UPDATES = 0;
+
+UPDATE user_project up
+LEFT JOIN (
+    SELECT 
+        p.user_project_id,
+        SUM(
+            CASE
+                WHEN TIME(p.created_at) > '19:00:00' THEN 0.5
+                WHEN TIME(p.created_at) < '07:00:00' THEN 1
+                ELSE 1
+            END
+        ) AS total_point
+    FROM posts p
+    GROUP BY p.user_project_id
+) AS t ON up.id = t.user_project_id
+SET up.scrum_point = COALESCE(t.total_point, 0);
+
+SET SQL_SAFE_UPDATES = 1;
 
 COMMIT;
