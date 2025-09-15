@@ -14,6 +14,12 @@ const {
 const { getObjectSignedUrl } = require("../services/storage.service.js");
 const { sendMail } = require("../services/mailer.service.js");
 
+async function resolveProfilePic(pic) {
+  if (!pic) return null;
+  if (pic.startsWith("http")) return pic;
+  return await getObjectSignedUrl(pic);
+}
+
 exports.getAllComments = async (req, res) => {
   const { post_id } = req.params;
   const cacheKey = `comments:scrum:${post_id}`;
@@ -37,10 +43,9 @@ exports.getAllComments = async (req, res) => {
     });
 
     for (const comment of comments) {
-      const pic = comment.User?.profile_pic;
-      if (pic) {
-        comment.User.profile_pic = await getObjectSignedUrl(pic);
-      }
+      comment.User.profile_pic = await resolveProfilePic(
+        comment.User?.profile_pic
+      );
     }
 
     await saveToCache(cacheKey, comments);
@@ -55,9 +60,19 @@ exports.getAllComments = async (req, res) => {
 };
 
 exports.getCommentById = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; 
+  const cacheKey = `comment:${id}`;
 
   try {
+    const cached = await getFromCache(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        message: "Fetch comment successfully! (cache)",
+        status: 200,
+        comment: cached,
+      });
+    }
+
     const comment = await Comment.findOne({
       where: { id },
       include: {
@@ -66,20 +81,22 @@ exports.getCommentById = async (req, res) => {
       },
     });
 
-    if (!comment) return res.status(404).json({ error: "Comment not found" });
-
-    const pic = comment.User?.profile_pic;
-    if (pic) {
-      comment.User.profile_pic = await getObjectSignedUrl(pic);
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
     }
 
-    res.status(200).json({
+    comment.User.profile_pic = await resolveProfilePic(comment.User?.profile_pic);
+
+    await saveToCache(cacheKey, comment);
+
+    return res.status(200).json({
       message: "Fetch comment successfully!",
       status: 200,
       comment,
     });
   } catch (err) {
-    res.status(500).json({ error: "Fetch failed", details: err.message });
+    console.error("Error fetching comment by ID:", err);
+    return res.status(500).json({ error: "Fetch failed", details: err.message });
   }
 };
 
@@ -165,10 +182,9 @@ exports.createComment = async (req, res) => {
     });
 
     if (createdComment?.User?.profile_pic) {
-      const pic = createdComment.User.profile_pic;
-      createdComment.User.profile_pic = pic.startsWith("http")
-        ? pic
-        : await getObjectSignedUrl(pic);
+      createdComment.User.profile_pic = await resolveProfilePic(
+        createdComment.User.profile_pic
+      );
     }
 
     res.status(201).json({
@@ -206,7 +222,7 @@ exports.updateComment = async (req, res) => {
     });
 
     if (updatedComment?.User?.profile_pic) {
-      updatedComment.User.profile_pic = await getObjectSignedUrl(
+      updatedComment.User.profile_pic = await resolveProfilePic(
         updatedComment.User.profile_pic
       );
     }
