@@ -4,6 +4,7 @@ const projectController = require('../controllers/projects.controller.js')
 const auth = require('../middleware/auth.js')
 
 router.get('/', projectController.getAllProjects)
+router.get('/leaderboard', projectController.getLeaderboard)
 router.get('/:id', projectController.getProjectById)
 router.post('/', auth, projectController.createProject)
 router.put('/:id', auth, projectController.updateProject)

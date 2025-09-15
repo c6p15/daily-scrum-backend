@@ -264,3 +264,68 @@ exports.togglePinProject = async (req, res) => {
     return res.status(500).json({ error: "Toggle failed", details: err.message })
   }
 }
+
+exports.getLeaderboard = async (req, res) => {
+  try {
+    const cacheKey = "leaderboard:top"
+    const cached = await getFromCache(cacheKey)
+
+    if (cached) {
+      return res.json(JSON.parse(cached))
+    }
+
+    const users = await User.findAll({
+      attributes: ["id", "firstname", "lastname"],
+      include: [
+        {
+          model: UserProject,
+          attributes: ["scrum_point"],
+          include: [{ model: Project, attributes: ["title"] }],
+        },
+      ],
+    })
+
+    const formatted = users.map(user => {
+      if (!user.UserProjects || user.UserProjects.length === 0) {
+        return {
+          id: user.id,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          scrum_point: 0,
+          project: null,
+        }
+      }
+
+      const topProject = user.UserProjects.reduce((prev, curr) =>
+        (curr.scrum_point || 0) > (prev.scrum_point || 0) ? curr : prev
+      )
+
+      return {
+        id: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        scrum_point: topProject.scrum_point || 0,
+        project: topProject.Project?.title || "Unknown Project",
+      }
+    })
+
+    formatted.sort((a, b) => b.scrum_point - a.scrum_point)
+
+    const response = {
+      message: "Fetch leaderboard successfully!",
+      status: 200,
+      leaderboard: formatted,
+    }
+
+    await saveToCache(cacheKey, JSON.stringify(response))
+
+    return res.json(response)
+  } catch (error) {
+    console.error("Error getting leaderboard:", error)
+    return res.status(500).json({
+      message: "Internal server error",
+      status: 500,
+      leaderboard: [],
+    })
+  }
+}
