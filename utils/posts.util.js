@@ -1,19 +1,21 @@
 const { Post, UserProject, User, FileUpload, Project } = require('../models')
 const { getObjectSignedUrl } = require('../services/storage.service')
 
+async function resolveProfilePic(pic) {
+  if (!pic) return null
+  if (pic.startsWith("http")) return pic
+  return await getObjectSignedUrl(pic)
+}
+
 const formatUserFromScrum = async (userProject) => {
   const user = userProject.User
-  let profilePicUrl = null
-  if (user.profile_pic) {
-    profilePicUrl = await getObjectSignedUrl(user.profile_pic)
-  }
 
   return {
     id: user.id,
     firstname: user.firstname,
     lastname: user.lastname,
     email: user.email,
-    profile_pic: profilePicUrl,
+    profile_pic: await resolveProfilePic(user.profile_pic),
     position: userProject.position,
     scrum_point: userProject.scrum_point,
   }
@@ -22,11 +24,10 @@ const formatUserFromScrum = async (userProject) => {
 const formatPost = async (scrum) => {
   const files = await Promise.all(
     (scrum.FileUploads || []).map(async (file) => {
-      const signedUrl = await getObjectSignedUrl(file.file_url)
       return {
         id: file.id,
         daily_scrum_id: file.daily_scrum_id,
-        file_url: signedUrl,
+        file_url: await getObjectSignedUrl(file.file_url),
         file_name: file.file_name,
         mime_type: file.mime_type,
         file_size: file.file_size,
@@ -52,4 +53,4 @@ const formatPost = async (scrum) => {
   }
 }
 
-module.exports = { formatPost }
+module.exports = { formatPost, resolveProfilePic }

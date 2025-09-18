@@ -280,6 +280,7 @@ exports.updatePost = async (req, res) => {
 exports.deletePost = async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
 
     const post = await Post.findByPk(id, {
       include: [
@@ -288,7 +289,13 @@ exports.deletePost = async (req, res) => {
       ],
     })
 
-    if (!post) return res.status(404).json({ message: "Not found" })
+    if (!post) {
+      return res.status(404).json({ message: "Post not found", status: 404 })
+    }
+
+    if (post.UserProject?.user_id !== userId) {
+      return res.status(403).json({ message: "Unauthorized: Not your post", status: 403 })
+    }
 
     const deletePromises = post.FileUploads.map(async (file) => {
       await deleteFile(file.file_url)
@@ -298,6 +305,7 @@ exports.deletePost = async (req, res) => {
 
     await post.destroy()
 
+    // Clear caches
     await deleteFromCache(`posts:one:${id}`)
     await deleteFromCache(`posts:all`)
     await deleteFromCache(`posts:user:${post.user_project_id}`)
@@ -305,6 +313,7 @@ exports.deletePost = async (req, res) => {
 
     res.status(200).json({ message: "Delete post successfully!", status: 200 })
   } catch (error) {
+    console.error("Delete post failed:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 }
