@@ -280,32 +280,21 @@ exports.getLeaderboard = async (req, res) => {
         {
           model: UserProject,
           attributes: ["scrum_point"],
-          include: [{ model: Project, attributes: ["title"] }],
         },
       ],
     })
 
     const formatted = users.map(user => {
-      if (!user.UserProjects || user.UserProjects.length === 0) {
-        return {
-          id: user.id,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          scrum_point: 0,
-          project: null,
-        }
-      }
-
-      const topProject = user.UserProjects.reduce((prev, curr) =>
-        (curr.scrum_point || 0) > (prev.scrum_point || 0) ? curr : prev
-      )
+      const totalPoints = user.UserProjects?.reduce(
+        (sum, curr) => sum + (curr.scrum_point || 0),
+        0
+      ) || 0
 
       return {
         id: user.id,
         firstname: user.firstname,
         lastname: user.lastname,
-        scrum_point: topProject.scrum_point || 0,
-        project: topProject.Project?.title || "Unknown Project",
+        scrum_point: totalPoints,
       }
     })
 
