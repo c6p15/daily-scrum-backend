@@ -27,7 +27,7 @@ const formatPost = async (scrum) => {
       return {
         id: file.id,
         daily_scrum_id: file.daily_scrum_id,
-        file_url: await getObjectSignedUrl(file.file_url),
+        file_url: await resolveProfilePic(file.file_url),
         file_name: file.file_name,
         mime_type: file.mime_type,
         file_size: file.file_size,
